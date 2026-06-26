@@ -26,11 +26,11 @@ import { useAppContext } from "./Context/AppContext.jsx";
 import Instruction from "./components/Instruction.jsx";
 import Ask from "./components/Ask.jsx";
 import RecycleBinFolder from "./components/RecycleBinFolder.jsx";
-
+import VisualizerPage from "./Visualizer/VisualizerPage.jsx";
 function App() {
   const { userData } = useAppContext();
   const [isLightMode, setisLightMode] = useState(true);
-  const location = useLocation(); // ✅ Required for key
+  const location = useLocation(); // Required for key
 
   useEffect(() => {
     setisLightMode(userData?.isLightMode);
@@ -63,6 +63,7 @@ function App() {
         <Route path="/LobbyPage" element={<LobbyScreen key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
         <Route path="/Developer" element={<Developer key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
         <Route path="/RecycleBinFolderPage" element={<RecycleBinFolder />} />
+        <Route path="/Visualizer" element={<VisualizerPage key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
       </Routes>
     </>
   );

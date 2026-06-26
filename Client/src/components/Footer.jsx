@@ -36,7 +36,7 @@ const Footer = ({ isLightMode, setisLightMode }) => {
         <button
           onClick={() =>
             window.open(
-              "https://www.linkedin.com/in/aditya-kumar--/",
+              "",
               "_blank",
               "noopener,noreferrer"
             )
@@ -45,13 +45,13 @@ const Footer = ({ isLightMode, setisLightMode }) => {
             isLightMode ? "text-blue-400" : "text-green-400"
           } font-semibold`}
         >
-          Aditya Kumar Rajput
+          MD ARISH KHAN
         </button>{" "}
         and{" "}
         <button
         onClick={() =>
             window.open(
-              "https://www.linkedin.com/in/harsh-gupta-61b01a2a4/",
+              "",
               "_blank",
               "noopener,noreferrer"
             )
@@ -60,7 +60,7 @@ const Footer = ({ isLightMode, setisLightMode }) => {
             isLightMode ? "text-blue-400" : "text-green-400"
           } font-semibold`}
         >
-          Harsh Gupta
+          SALMAN KHAN
         </button>
       </div>
     </footer>

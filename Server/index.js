@@ -13,14 +13,16 @@ const router5 = require("./Routings/ChatsRoute");
 const router6 = require("./Routings/ThemeRoutes");
 const Router7 = require("./Routings/ContactRoutes");
 const codeExecutionRoutes = require("./Routings/codeExecutionRoutes");
-
+const artificialRoutes = require("./Routings/ArtificialRoutes");
+const compression = require("compression");
 require("dotenv").config();
- 
+
+app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:5173",
-  credentials: true                 // 👈 this is REQUIRED to allow cookies
+  credentials: true                 
 }));
 
 
@@ -47,6 +49,7 @@ app.use("/api/chats/",router5);
 app.use("/api/theme",router6);
 app.use("/api/feedback",Router7);
 app.use("/api/execute", codeExecutionRoutes);
+app.use(artificialRoutes);
 connectDB();
 
 app.get("/",(req,res)=>{
