@@ -159,12 +159,13 @@ const TRACE_ENDPOINTS = {
   python: "/api/execute/trace-py",
   javascript: "/api/execute/trace-js",
   java: "/api/execute/trace-java",
-  cpp: "/api/execute/trace-cpp",        
+  cpp: "/api/execute/trace-cpp",
+  sql: "/api/execute/trace-sql",        
   // c: "/api/execute/trace-c",            //jab backend ready ho, bas uncomment + URL daal do
   // rust: "/api/execute/trace-rust",
   // ruby: "/api/execute/trace-ruby",
   // typescript: "/api/execute/trace-ts",
-  sql: "/api/execute/trace-sql",
+  
 };
 
 const executeCode = async () => {

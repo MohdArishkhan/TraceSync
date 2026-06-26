@@ -12,9 +12,6 @@ const { executePythonTrace } = require('../Services/TracerEngine/Python/Run_pyth
 const { executeJavaTrace } = require('../Services/TracerEngine/Java/Run_java');
 const router = express.Router();
 
-const JDOODLE_CLIENT_ID = process.env.JDOODLE_CLIENT_ID;
-const JDOODLE_CLIENT_SECRET = process.env.JDOODLE_CLIENT_SECRET;
-
 const LANGUAGE_MAP = {
   javascript: { language: "nodejs", versionIndex: "4" },
   python: { language: "python3", versionIndex: "4" },
@@ -61,39 +58,80 @@ router.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Code execution service is running" });
 });
 
+const JDOODLE_CREDENTIALS = [
+  { id: process.env.JDOODLE_CLIENT_ID, secret: process.env.JDOODLE_CLIENT_SECRET },
+  { id: process.env.JDOODLE_CLIENT_ID_WRITE7, secret: process.env.JDOODLE_CLIENT_SECRET_WRITE7 },
+  { id: process.env.JDOODLE_CLIENT_ID_SAL, secret: process.env.JDOODLE_CLIENT_SECRET_SAL },
+  { id: process.env.JDOODLE_CLIENT_ID_SALPS, secret: process.env.JDOODLE_CLIENT_SECRET_SALPS },
+  { id: process.env.JDOODLE_CLIENT_ID_SALCG, secret: process.env.JDOODLE_CLIENT_SECRET_SALCG }
+].filter(cred => cred.id && cred.secret);
+
 router.post("/execute", async (req, res) => {
   try {
     const { language, code, stdin } = req.body;
-    
+
     if (!code || !language) return res.status(400).json({ status: 0, error: "Code and language are required" });
-    if (!JDOODLE_CLIENT_ID || !JDOODLE_CLIENT_SECRET) return res.status(500).json({ status: 0, error: "JDoodle credentials not configured." });
 
     const languageConfig = LANGUAGE_MAP[language];
     if (!languageConfig) return res.status(400).json({ status: 0, error: `Language '${language}' not supported.` });
 
-    const response = await axios.post("https://api.jdoodle.com/v1/execute", {
-      clientId: JDOODLE_CLIENT_ID,
-      clientSecret: JDOODLE_CLIENT_SECRET,
-      script: code,
-      language: languageConfig.language,
-      versionIndex: languageConfig.versionIndex,
-      stdin: stdin || "",
-    }, { headers: { "Content-Type": "application/json" }, timeout: 30000 });
+    if (language === "cpp" || language === "c") {
+      const securityCheck = isSecure(code, DANGEROUS_CPP_PATTERNS);
+      if (!securityCheck.safe) return res.status(400).json({ status: 0, error: "Security violation: Restricted systems actions detected in C/C++ source code." });
+    }
 
-    const result = response.data;
-    res.status(200).json({
-      status: 1,
-      data: {
-        language: languageConfig.language,
-        output: result.output || "",
-        stdout: result.output || "",
-        stderr: result.error || "",
-        memory: result.memory || null,
-        cpuTime: result.cpuTime || null,
-        statusCode: result.statusCode,
-        isExecuteSuccess: result.isExecuteSuccess !== undefined ? result.isExecuteSuccess : true,
-      },
-    });
+    if (language === "java") {
+      const securityCheck = isSecure(code, DANGEROVA_JAVA_PATTERNS);
+      if (!securityCheck.safe) return res.status(400).json({ status: 0, error: "Security violation: Restricted runtime APIs detected in Java source code." });
+    }
+
+    if (JDOODLE_CREDENTIALS.length === 0) {
+      return res.status(500).json({ status: 0, error: "JDoodle credentials not configured." });
+    }
+
+    let lastError = null;
+    
+    for (const cred of JDOODLE_CREDENTIALS) {
+      try {
+        const response = await axios.post("https://api.jdoodle.com/v1/execute", {
+          clientId: cred.id,
+          clientSecret: cred.secret,
+          script: code,
+          language: languageConfig.language,
+          versionIndex: languageConfig.versionIndex,
+          stdin: stdin || "",
+        }, { headers: { "Content-Type": "application/json" }, timeout: 30000 });
+
+        const result = response.data;
+
+        if (result.statusCode === 429 || (result.error && result.error.includes("Daily limit reached"))) {
+          continue;
+        }
+
+        return res.status(200).json({
+          status: 1,
+          data: {
+            language: languageConfig.language,
+            output: result.output || "",
+            stdout: result.output || "",
+            stderr: result.error || "",
+            memory: result.memory || null,
+            cpuTime: result.cpuTime || null,
+            statusCode: result.statusCode,
+            isExecuteSuccess: result.isExecuteSuccess !== undefined ? result.isExecuteSuccess : true,
+          },
+        });
+      } catch (error) {
+        const status = error.response?.status;
+        if (status === 429 || status === 401 || error.response?.data?.error?.includes("Daily limit reached")) {
+          lastError = error;
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    return res.status(429).json({ status: 0, error: "All JDoodle API keys exhausted or daily limit reached." });
   } catch (error) {
     res.status(500).json({ status: 0, error: error.message || "Failed to execute code", details: error.response?.data || error.message });
   }

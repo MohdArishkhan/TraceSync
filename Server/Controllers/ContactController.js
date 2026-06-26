@@ -13,7 +13,7 @@ const addFeedback = async (req, res) => {
 
     const mailDetails = {
       from: process.env.SENDER_EMAIL2,
-      to: "codedoodle07@outlook.com",
+      to: "starlightpro22@gmail.com",
       subject: "Welcome to CodeDoodle!",
       html: `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; background-color: #f9f9f9;">
