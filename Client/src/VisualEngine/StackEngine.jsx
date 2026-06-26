@@ -1,13 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// data shape: { array: [{id, value}, ...], activeIndices: [idx, ...], topIndex: number }
-// array[0] = bottom of stack, array[last] = top
-
 export default function StackEngine({ data }) {
-  const items   = data?.array   ?? [];
-  const active  = data?.activeIndices ?? [];
-  const topIdx  = data?.topIndex ?? items.length - 1;
+  const items = data?.array ?? [];
+  const active = data?.activeIndices ?? [];
+  const topIdx = data?.topIndex ?? items.length - 1;
   const prevLen = useRef(items.length);
 
   useEffect(() => { prevLen.current = items.length; }, [items.length]);
@@ -15,117 +12,100 @@ export default function StackEngine({ data }) {
   const pushed = items.length > prevLen.current;
   const popped = items.length < prevLen.current;
 
-  if (!items.length) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-full text-slate-500 gap-2">
-        <svg width="40" height="50" viewBox="0 0 40 50">
-          <rect x="4" y="4"  width="32" height="10" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.5"/>
-          <rect x="4" y="20" width="32" height="10" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.5"/>
-          <rect x="4" y="36" width="32" height="10" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.5"/>
-        </svg>
-        <span className="text-xs font-mono">Stack is empty</span>
-      </div>
-    );
-  }
-
   // Render top → bottom (reverse order visually)
   const displayItems = [...items].reverse();
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full p-6 gap-0 overflow-auto">
-
-      {/* TOP label + push arrow */}
-      <div className="flex items-center gap-2 mb-1 h-6">
-        {pushed && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="text-[10px] font-mono text-emerald-400 tracking-widest uppercase"
-          >
-            push ↓
-          </motion.div>
-        )}
-        {popped && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="text-[10px] font-mono text-rose-400 tracking-widest uppercase"
-          >
-            pop ↑
-          </motion.div>
-        )}
-      </div>
-
-      {/* Stack items — top first */}
-      <div className="flex flex-col gap-1.5 items-center">
-        <AnimatePresence mode="popLayout" initial={false}>
-          {displayItems.map((item, revIdx) => {
-            const realIdx  = items.length - 1 - revIdx;
-            const isTop    = realIdx === topIdx;
-            const isActive = active.includes(realIdx) || active.includes(String(realIdx));
-
-            return (
-              <motion.div
-                key={item.id ?? `stack-${realIdx}`}
-                layout
-                initial={{ opacity: 0, y: -32, scale: 0.85 }}
-                animate={{ opacity: 1, y: 0,   scale: isActive ? 1.06 : 1 }}
-                exit={{    opacity: 0, y: -32, scale: 0.85 }}
-                transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-                className="relative flex items-center"
-              >
-                {/* TOP pointer */}
-                {isTop && (
-                  <motion.div
-                    layoutId="top-pointer"
-                    className="absolute -left-16 flex items-center gap-1"
-                  >
-                    <span className="text-[10px] font-mono text-indigo-400 tracking-widest">TOP</span>
-                    <svg width="20" height="10" viewBox="0 0 20 10">
-                      <line x1="0" y1="5" x2="14" y2="5" stroke="#818cf8" strokeWidth="1.5"/>
-                      <polygon points="14,2 20,5 14,8" fill="#818cf8"/>
-                    </svg>
-                  </motion.div>
-                )}
-
-                {/* Cell */}
-                <div
-                  className={`
-                    flex items-center justify-center
-                    w-36 h-11 rounded-lg
-                    font-mono text-base font-bold
-                    border-2 transition-colors duration-200
-                    ${isActive
-                      ? 'bg-indigo-500 text-white border-indigo-300 shadow-[0_0_14px_rgba(99,102,241,0.6)]'
-                      : isTop
-                        ? 'bg-slate-700 text-indigo-200 border-indigo-500/60'
-                        : 'bg-slate-800 text-slate-200 border-slate-600'}
-                  `}
-                >
-                  <span className="truncate px-2 text-center">
-                    {item.value ?? item}
-                  </span>
-                </div>
-
-                {/* Index label */}
-                <span className="absolute -right-10 text-[10px] font-mono text-slate-600">
-                  [{realIdx}]
-                </span>
-              </motion.div>
-            );
-          })}
+    <div className="relative flex flex-col items-center justify-center w-full h-full p-6 overflow-hidden bg-transparent">
+      
+      {/* Dynamic Push/Pop Status Indicator */}
+      <div className="absolute top-6 flex items-center justify-center h-8">
+        <AnimatePresence mode="wait">
+          {pushed && (
+            <motion.div key="push" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-[10px] font-mono text-emerald-400 tracking-widest uppercase shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+              ↓ Pushed
+            </motion.div>
+          )}
+          {popped && (
+            <motion.div key="pop" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} className="px-3 py-1 bg-rose-500/10 border border-rose-500/30 rounded-full text-[10px] font-mono text-rose-400 tracking-widest uppercase shadow-[0_0_12px_rgba(244,63,94,0.2)]">
+              ↑ Popped
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
-      {/* Stack floor */}
-      <div className="mt-1.5 w-44 h-0.5 rounded-full bg-slate-600" />
-      <span className="mt-1 text-[10px] font-mono text-slate-600">bottom</span>
+      <div className="mt-10 relative flex flex-col items-center">
+        {/* The Stack Container (Glass Beaker Metaphor) */}
+        <div className="absolute bottom-0 w-48 border-x-2 border-b-2 border-slate-600/50 rounded-b-xl bg-slate-900/20 backdrop-blur-sm shadow-[inset_0_-20px_30px_rgba(0,0,0,0.2)]" 
+             style={{ height: Math.max(160, items.length * 52 + 40), transition: 'height 0.4s ease' }} />
 
-      {/* Size indicator */}
-      <div className="mt-4 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700 text-[10px] font-mono text-slate-400">
-        size&nbsp;=&nbsp;<span className="text-indigo-300">{items.length}</span>
+        {/* Empty State */}
+        {!items.length && (
+          <div className="absolute bottom-10 flex flex-col items-center gap-3 opacity-50">
+            <div className="w-32 h-10 border-2 border-dashed border-slate-600 rounded-lg" />
+            <div className="w-32 h-10 border-2 border-dashed border-slate-600 rounded-lg" />
+            <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">Stack Empty</span>
+          </div>
+        )}
+
+        {/* Stack Items */}
+        <div className="flex flex-col gap-2 items-center justify-end z-10 pb-2 min-h-[120px]">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {displayItems.map((item, revIdx) => {
+              const realIdx = items.length - 1 - revIdx;
+              const isTop = realIdx === topIdx;
+              const isActive = active.includes(realIdx) || active.includes(String(realIdx));
+
+              return (
+                <motion.div
+                  key={item.id ?? `stack-${realIdx}`}
+                  layout
+                  initial={{ opacity: 0, y: -50, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: isActive ? 1.05 : 1 }}
+                  exit={{ opacity: 0, y: -40, scale: 0.8, filter: "blur(4px)" }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  className="relative flex items-center w-40 group"
+                >
+                  {/* Pointer Label */}
+                  {isTop && (
+                    <motion.div layoutId="top-badge" className="absolute -left-16 flex items-center">
+                      <div className="px-2 py-0.5 bg-indigo-500 rounded-md text-[9px] font-bold font-mono text-white tracking-wider shadow-[0_0_10px_rgba(99,102,241,0.5)]">
+                        TOP
+                      </div>
+                      <div className="w-3 h-0.5 bg-indigo-500" />
+                    </motion.div>
+                  )}
+
+                  {/* Cell Body */}
+                  <div className={`w-full h-11 rounded-lg font-mono text-sm font-bold flex items-center justify-center border transition-all duration-300 ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.6)]' 
+                      : isTop 
+                        ? 'bg-slate-800 text-indigo-100 border-indigo-500/60 shadow-lg' 
+                        : 'bg-slate-800/80 text-slate-300 border-slate-600/50 backdrop-blur-md'
+                  }`}>
+                    <span className="truncate px-4 drop-shadow-md">{item.value ?? item}</span>
+                  </div>
+
+                  {/* Index Number */}
+                  <div className="absolute -right-8 text-[9px] font-mono text-slate-500 group-hover:text-slate-300 transition-colors">
+                    {realIdx}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Metadata Bottom */}
+      <div className="mt-6 flex items-center gap-4">
+        <div className="px-3 py-1 rounded-md bg-slate-800/50 border border-slate-700/50 text-[10px] font-mono text-slate-400 backdrop-blur-sm">
+          Capacity: Dynamic
+        </div>
+        <div className="px-3 py-1 rounded-md bg-slate-800/50 border border-slate-700/50 text-[10px] font-mono text-slate-400 backdrop-blur-sm">
+          Size: <span className="text-indigo-400 font-bold">{items.length}</span>
+        </div>
       </div>
     </div>
   );
