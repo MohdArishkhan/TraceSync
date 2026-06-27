@@ -2,13 +2,11 @@ const getProp = (obj, propName) => {
   if (!obj) return undefined;
   if (!Array.isArray(obj)) return obj[propName];
 
-  // INSTANCE / CLASS encoding: ["INSTANCE", "ClassName", ["propName", val], ...]
   if (typeof obj[0] === 'string' && (obj[0].startsWith('INSTANCE') || obj[0].startsWith('CLASS'))) {
     for (let i = 2; i < obj.length; i++) {
       if (Array.isArray(obj[i]) && obj[i][0] === propName) return obj[i][1];
     }
   }
-  // DICT encoding: ["DICT", ["key", val], ...]
   if (obj[0] === 'DICT') {
     for (let i = 1; i < obj.length; i++) {
       if (Array.isArray(obj[i]) && obj[i][0] === propName) return obj[i][1];
@@ -17,7 +15,6 @@ const getProp = (obj, propName) => {
   return undefined;
 };
 
-// ── HELPER: deeply resolve REFs and strip Python Tutor type tags ─────────────
 const resolveDeep = (val, heap, depth = 0) => {
   if (depth > 15) return val;
 
@@ -34,7 +31,6 @@ const resolveDeep = (val, heap, depth = 0) => {
         return actual.slice(1).map(item => resolveDeep(item, heap, depth + 1));
       }
       if (tag === 'DICT') {
-        // Convert DICT pairs to a plain JS object
         const obj = {};
         for (let i = 1; i < actual.length; i++) {
           if (Array.isArray(actual[i]) && actual[i].length === 2) {
@@ -49,25 +45,15 @@ const resolveDeep = (val, heap, depth = 0) => {
     }
     return actual.map(item => resolveDeep(item, heap, depth + 1));
   }
-
   return actual;
 };
 
-// ── HELPER: stable IDs for array elements (preserves identity across frames) ─
 const generateStableArray = (rawArray, prevObjs) =>
   rawArray.map((val, idx) =>
     prevObjs[idx]?.value === val
       ? prevObjs[idx]
       : { id: `v-${Math.random().toString(36).slice(2, 8)}`, value: val }
   );
-
-// ── HELPER: check if a raw python-tutor value is a DICT/HashMap ─────────────
-const isPythonDict = (raw) =>
-  Array.isArray(raw) &&
-  (raw[0] === 'DICT' ||
-    (raw[0] === 'REF' /* handled below */));
-
-// ── DS BUILDERS ──────────────────────────────────────────────────────────────
 
 const buildTree = (refVal, heap, visited = new Set()) => {
   if (!Array.isArray(refVal) || refVal[0] !== 'REF') return null;
@@ -157,29 +143,18 @@ const buildGraph = (varName, rawVal, heap) => {
   return null;
 };
 
-// ── STACK detection ───────────────────────────────────────────────────────────
 const STACK_NAMES = /^(stack|stk|st|s|path|calls|callstack|dfs_stack)$/i;
-
-// ── QUEUE detection ───────────────────────────────────────────────────────────
-const QUEUE_NAMES = /^(queue|q|bfs_queue|bfs|fifo|deque|dq|level|levels|tovisit)$/i;
-
-// ── HEAP detection ────────────────────────────────────────────────────────────
+const QUEUE_NAMES = /^(queue|q|bfs_queue|bfs|fifo|level|levels|tovisit|pq|minqueue|maxqueue|waiting|pending|worklist|frontier|open|openlist|que)$/i;
+const DEQUE_NAMES = /^(deque|dq)$/i;
 const HEAP_NAMES  = /^(heap|pq|priority_queue|min_heap|max_heap|h|hq)$/i;
-
-// ── HASH_MAP detection ────────────────────────────────────────────────────────
 const MAP_NAMES   = /^(map|hashmap|dict|counter|freq|frequency|memo|cache|seen|visited|dp|lookup|table|cnt|count|char_count|window|record)$/i;
-
-// ── SET detection ─────────────────────────────────────────────────────────────
 const SET_NAMES   = /^(seen|visited|added|used|s|st|found|instack|onstack)$/i;
+const DSU_NAMES   = /^(parent|dsu|uf|union_find|leader|root|size_arr|rank)$/i;
+const SEG_TREE_NAMES = /^(seg_tree|segtree|st|fenwick|bit|tree_arr)$/i;
+const TRIE_NAMES  = /^(trie|prefix_tree|dict_tree)$/i;
 
-// ── Determine if a resolved value is a plain 1-D primitive array ──────────────
-const is1DPrimitive = (arr) =>
-  Array.isArray(arr) &&
-  arr.length > 0 &&
-  !Array.isArray(arr[0]) &&
-  arr.every(v => typeof v !== 'object' || v === null);
+const is1DPrimitive = (arr) => Array.isArray(arr) && arr.length > 0 && !Array.isArray(arr[0]) && arr.every(v => typeof v !== 'object' || v === null);
 
-// ── Build HASH_MAP data from a resolved dict/object ──────────────────────────
 const buildHashMap = (resolved, bucketCount = 8, activeKey = null) => {
   if (!resolved || typeof resolved !== 'object' || Array.isArray(resolved)) return null;
 
@@ -188,29 +163,16 @@ const buildHashMap = (resolved, bucketCount = 8, activeKey = null) => {
     const s = String(key);
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % bucketCount;
     return {
-      key,
-      value: typeof value === 'object' ? JSON.stringify(value) : String(value),
-      bucket: h,
-      isActive: key === activeKey,
-      isNew: false,
+      key, value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+      bucket: h, isActive: key === activeKey, isNew: false,
     };
   });
-
   return { entries, bucketCount, activeKey };
 };
 
-// ── Build SET data ────────────────────────────────────────────────────────────
-const buildSetData = (resolved) => {
-  const items = Array.isArray(resolved) ? resolved : Object.keys(resolved ?? {});
-  return items.map((val, idx) => ({
-    id: `set-${idx}`,
-    value: String(val),
-  }));
-};
-
-// ── MAIN WORKER ───────────────────────────────────────────────────────────────
 self.onmessage = async (e) => {
-  const { url, payload } = e.data;
+  const { url, payload, aiMetadata } = e.data;
+  const aiType = aiMetadata?.type;
 
   try {
     const response = await fetch(url, {
@@ -226,7 +188,6 @@ self.onmessage = async (e) => {
     if (rawTrace.length === 0) throw new Error('No trace data was generated.');
 
     const stateHistory = new Map();
-    
     const recursionTree = { id: 'v-root', name: 'Global', children: [], status: 'completed', args: '' };
     let callStackTracker = [recursionTree];
     let callNodeCounter = 0;
@@ -234,19 +195,11 @@ self.onmessage = async (e) => {
     const normalizedTrace = rawTrace.map((step) => {
       if (step.event === 'call' && step.func_name !== '<module>') {
         const topFrame = step.stack_to_render[step.stack_to_render.length - 1];
-        
         const args = Object.entries(topFrame?.encoded_locals || {})
           .filter(([k, v]) => typeof v === 'number' || typeof v === 'string')
-          .map(([k, v]) => `${v}`)
-          .join(',');
+          .map(([k, v]) => `${v}`).join(',');
 
-        const newNode = {
-          id: `call-${callNodeCounter++}`,
-          name: `${step.func_name}(${args})`,
-          children: [],
-          status: 'active'
-        };
-        
+        const newNode = { id: `call-${callNodeCounter++}`, name: `${step.func_name}(${args})`, children: [], status: 'active' };
         callStackTracker[callStackTracker.length - 1].children.push(newNode);
         callStackTracker.push(newNode);
       } else if (step.event === 'return' && step.func_name !== '<module>') {
@@ -260,24 +213,14 @@ self.onmessage = async (e) => {
       const currentTreeSnapshot = JSON.parse(JSON.stringify(recursionTree));
 
       const frame = {
-        line:            step.line ?? null,
-        stdout:          step.stdout ?? '',
-        stack_to_render: step.stack_to_render ?? [],
-        heap:            step.heap ?? {},
-        event:           step.event ?? '',
-        variables:       [],
-        structures:      [],
+        line: step.line ?? null, stdout: step.stdout ?? '', stack_to_render: step.stack_to_render ?? [],
+        heap: step.heap ?? {}, event: step.event ?? '', variables: [], structures: [],
       };
 
       const rootNodes = currentTreeSnapshot.children;
-      const hasNestedCalls = rootNodes.some(node => node.children && node.children.length > 0);
-      const hasMultipleTopCalls = rootNodes.length > 1;
-
-      if (rootNodes.length > 0 && (hasNestedCalls || hasMultipleTopCalls)) {
+      if (rootNodes.length > 0 && (rootNodes.some(n => n.children?.length > 0) || rootNodes.length > 1)) {
         frame.structures.push({
-          id: 'recursion_trace',
-          type: 'RECURSION_TREE',
-          name: 'Call Stack Tree',
+          id: 'recursion_trace', type: 'RECURSION_TREE', name: 'Call Stack Tree',
           data: { tree: rootNodes.length === 1 ? rootNodes[0] : currentTreeSnapshot }
         });
       }
@@ -290,11 +233,7 @@ self.onmessage = async (e) => {
       const pointers = [];
       for (const [key, val] of Object.entries(locals)) {
         if (/^(dir|dirs|directions)$/i.test(key)) continue;
-
-        if (
-          typeof val === 'number' &&
-          /^(i|j|k|l|r|left|right|low|high|mid|idx|index|ptr|curr|pos|row|col|x|y|n|m|start|end|fast|slow|top|bot|head|tail)$/i.test(key)
-        ) {
+        if (typeof val === 'number' && /^(i|j|k|l|r|left|right|low|high|mid|idx|index|ptr|curr|pos|row|col|x|y|n|m|start|end|fast|slow|top|bot|head|tail)$/i.test(key)) {
           pointers.push(val);
         }
 
@@ -306,35 +245,38 @@ self.onmessage = async (e) => {
 
         const resolved = resolveDeep(val, frame.heap);
         if (Array.isArray(resolved) && resolved.length > 8) continue;
-
         frame.variables.push({ name: key, value: displayVal });
       }
 
-      // ── 2. Detect & classify each variable ─────────────────────────────────
       const seenRefs = new Set();
       const emittedNames = new Set();
 
       for (const [varName, rawVal] of Object.entries(locals)) {
         if (/^(dir|dirs|directions|moves|dx|dy|delta)$/i.test(varName)) continue;
 
-        // 👇 NEW: Guard to prevent named Queues/Stacks from being parsed as Trees
-        const isNamedQueueOrStack = QUEUE_NAMES.test(varName) || STACK_NAMES.test(varName);
+        const isQueueName = QUEUE_NAMES.test(varName);
+        const aiWantsQueue = aiType === "QUEUE";
+        const isStackName = STACK_NAMES.test(varName);
+        const aiWantsStack = aiType === "STACK";
+        const isDequeName = DEQUE_NAMES.test(varName);
+        const aiWantsDeque = aiType === "DEQUE";
+        const isDSUName = DSU_NAMES.test(varName);
+        const aiWantsDSU = aiType === "DSU";       
+        const isSegTreeName = SEG_TREE_NAMES.test(varName);
+        const aiWantsSegTree = aiType === "SEGMENT_TREE" || aiType === "FENWICK_TREE";
+        const isTrieName = TRIE_NAMES.test(varName);
+        const aiWantsTrie = aiType === "TRIE";
+        const aiWantsSort = aiType === "SORTING";
 
-        // ── REF-based structures: Tree, LinkedList ────────────────────────────
-        // We now check !isNamedQueueOrStack before allowing it into the Tree/LinkedList blocks
-        if (!isNamedQueueOrStack && Array.isArray(rawVal) && rawVal[0] === 'REF') {
+        const isReservedName = isQueueName || aiWantsQueue || isStackName || aiWantsStack || isDequeName || aiWantsDeque || isDSUName || aiWantsDSU || isSegTreeName || aiWantsSegTree || isTrieName || aiWantsTrie || aiWantsSort;
+
+        if (!isReservedName && Array.isArray(rawVal) && rawVal[0] === 'REF') {
           const refId = rawVal[1];
           if (seenRefs.has(refId)) continue;
-
           const obj = frame.heap[refId];
           if (!obj) continue;
 
-          // Tree?
-          if (
-            getProp(obj, 'left') !== undefined ||
-            getProp(obj, 'right') !== undefined ||
-            getProp(obj, 'children') !== undefined
-          ) {
+          if (getProp(obj, 'left') !== undefined || getProp(obj, 'right') !== undefined || getProp(obj, 'children') !== undefined) {
             const tree = buildTree(rawVal, frame.heap);
             if (tree) {
               const activeNodes = [];
@@ -348,7 +290,6 @@ self.onmessage = async (e) => {
             continue;
           }
 
-          // Linked List?
           if (getProp(obj, 'next') !== undefined) {
             const ll = buildLinkedList(rawVal, frame.heap);
             if (ll.nodes.length > 0) {
@@ -367,8 +308,62 @@ self.onmessage = async (e) => {
           }
         }
 
-        // ── GRAPH (adjacency list variable name check) ────────────────────────
-        if (/^(graph|adj|adjacency|g|edges|neighbors)$/i.test(varName) && !emittedNames.has(varName)) {
+        if (Array.isArray(rawVal) && rawVal[0] === 'REF' && !emittedNames.has(varName)) {
+          const refObj = frame.heap[rawVal[1]];
+          const isContainerInstance = refObj && Array.isArray(refObj) && (typeof refObj[0] === 'string') && (refObj[0].startsWith('INSTANCE') || refObj[0].startsWith('CLASS'));
+
+          if (isContainerInstance) {
+            const extractInternalArray = () => {
+              for (let i = 2; i < refObj.length; i++) {
+                if (Array.isArray(refObj[i]) && refObj[i].length === 2) {
+                  const v = resolveDeep(refObj[i][1], frame.heap);
+                  if (Array.isArray(v)) return v; 
+                }
+              }
+              const directElements = [];
+              for (let i = 2; i < refObj.length; i++) {
+                 if (Array.isArray(refObj[i]) && refObj[i][0] === 'REF') directElements.push(resolveDeep(refObj[i], frame.heap));
+                 else if (!Array.isArray(refObj[i])) directElements.push(refObj[i]);
+              }
+              return directElements;
+            };
+
+            if (isDequeName || aiWantsDeque) {
+              const innerItems = extractInternalArray();
+              const history = stateHistory.get(varName) || { array: [], objs: [] };
+              const stableArr = generateStableArray(innerItems, history.objs);
+              stateHistory.set(varName, { array: [...innerItems], objs: stableArr });
+              frame.structures.push({ id: varName, type: 'DEQUE', name: varName, data: { array: stableArr, activeIndices: [] } });
+              emittedNames.add(varName);
+              continue;
+            }
+
+            if (isQueueName || aiWantsQueue) {
+              const innerItems = extractInternalArray();
+              const history = stateHistory.get(varName) || { array: [], objs: [] };
+              const stableArr = generateStableArray(innerItems, history.objs);
+              stateHistory.set(varName, { array: [...innerItems], objs: stableArr });
+              frame.structures.push({ id: varName, type: 'QUEUE', name: varName, data: { array: stableArr, activeIndices: [], frontIndex: 0, rearIndex: stableArr.length - 1 } });
+              emittedNames.add(varName);
+              continue;
+            }
+
+            if (isStackName || aiWantsStack) {
+              const innerItems = extractInternalArray();
+              const history = stateHistory.get(varName) || { array: [], objs: [] };
+              const stableArr = generateStableArray(innerItems, history.objs);
+              stateHistory.set(varName, { array: [...innerItems], objs: stableArr });
+              frame.structures.push({ id: varName, type: 'STACK', name: varName, data: { array: stableArr, activeIndices: [], topIndex: stableArr.length - 1 } });
+              emittedNames.add(varName);
+              continue;
+            }
+          }
+        }
+
+        const isGraphName = /^(graph|adj|adjacency|g|edges|neighbors)$/i.test(varName);
+        const aiWantsGraph = aiType === "GRAPH";
+
+        if ((isGraphName || aiWantsGraph) && !emittedNames.has(varName)) {
           const graphData = buildGraph(varName, rawVal, frame.heap);
           if (graphData) {
             frame.structures.push({ id: varName, type: 'GRAPH', name: varName, data: graphData });
@@ -377,15 +372,11 @@ self.onmessage = async (e) => {
           }
         }
 
-        // ── Resolve to JS value for remaining checks ──────────────────────────
         const resolved = resolveDeep(rawVal, frame.heap);
         if (emittedNames.has(varName)) continue;
 
-        // ── HASH_MAP ──────────────────────────────────────────────────────────
-        const isDict =
-          (Array.isArray(rawVal) && rawVal[0] === 'DICT') ||
-          (Array.isArray(rawVal) && rawVal[0] === 'REF' &&
-            Array.isArray(frame.heap[rawVal[1]]) && frame.heap[rawVal[1]][0] === 'DICT') ||
+        const isDict = (Array.isArray(rawVal) && rawVal[0] === 'DICT') ||
+          (Array.isArray(rawVal) && rawVal[0] === 'REF' && Array.isArray(frame.heap[rawVal[1]]) && frame.heap[rawVal[1]][0] === 'DICT') ||
           (typeof resolved === 'object' && !Array.isArray(resolved) && resolved !== null);
 
         if (isDict && MAP_NAMES.test(varName)) {
@@ -397,40 +388,27 @@ self.onmessage = async (e) => {
           }
         }
 
-        // ── Remaining array-based structures ──────────────────────────────────
         if (!Array.isArray(resolved)) continue;
 
-        // ── MATRIX ────────────────────────────────────────────────────────────
         if (resolved.length > 0 && Array.isArray(resolved[0])) {
           const history = stateHistory.get(varName) || { matrix: [] };
           const changed = [];
-
           for (let r = 0; r < resolved.length; r++) {
             for (let c = 0; c < (resolved[r] ?? []).length; c++) {
-              if (
-                history.matrix[r] !== undefined &&
-                JSON.stringify(resolved[r][c]) !== JSON.stringify(history.matrix[r]?.[c])
-              ) {
-                changed.push(`${r},${c}`);
-              }
+              if (history.matrix[r] !== undefined && JSON.stringify(resolved[r][c]) !== JSON.stringify(history.matrix[r]?.[c])) changed.push(`${r},${c}`);
             }
           }
-
           if (typeof locals['i'] === 'number' && typeof locals['j'] === 'number') changed.push(`${locals['i']},${locals['j']}`);
           if (typeof locals['r'] === 'number' && typeof locals['c'] === 'number') changed.push(`${locals['r']},${locals['c']}`);
           if (typeof locals['row'] === 'number' && typeof locals['col'] === 'number') changed.push(`${locals['row']},${locals['col']}`);
 
-          frame.structures.push({
-            id: varName, type: 'MATRIX', name: varName,
-            data: { matrix: resolved, activeIndices: [...new Set(changed)] },
-          });
+          frame.structures.push({ id: varName, type: 'MATRIX', name: varName, data: { matrix: resolved, activeIndices: [...new Set(changed)] } });
           stateHistory.set(varName, { ...history, matrix: JSON.parse(JSON.stringify(resolved)) });
           emittedNames.add(varName);
           continue;
         }
 
-        // ── 1-D arrays: STACK / QUEUE / HEAP / SET / ARRAY ──────────────────
-        if (resolved.length === 0 && !STACK_NAMES.test(varName) && !QUEUE_NAMES.test(varName) && !HEAP_NAMES.test(varName)) continue;
+        if (resolved.length === 0 && !isReservedName && !HEAP_NAMES.test(varName)) continue;
 
         const history = stateHistory.get(varName) || { array: [], objs: [] };
         const changed = [];
@@ -443,74 +421,51 @@ self.onmessage = async (e) => {
         const stableArr = generateStableArray(resolved, history.objs);
         stateHistory.set(varName, { array: [...resolved], objs: stableArr });
 
-        // ── HEAP ──────────────────────────────────────────────────────────────
         if (HEAP_NAMES.test(varName)) {
           const isMin = /min/i.test(varName);
-          frame.structures.push({
-            id: varName, type: 'HEAP', name: varName,
-            data: {
-              array: stableArr,
-              activeIndices: [...new Set(changed)],
-              heapType: isMin ? 'MIN' : 'MAX',
-            },
-          });
+          frame.structures.push({ id: varName, type: 'HEAP', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)], heapType: isMin ? 'MIN' : 'MAX' } });
           emittedNames.add(varName);
           continue;
         }
-
-        // ── STACK ─────────────────────────────────────────────────────────────
-        if (STACK_NAMES.test(varName)) {
-          frame.structures.push({
-            id: varName, type: 'STACK', name: varName,
-            data: {
-              array: stableArr,
-              activeIndices: [...new Set(changed)],
-              topIndex: stableArr.length - 1,
-            },
-          });
+        if (isDequeName || aiWantsDeque) {
+          frame.structures.push({ id: varName, type: 'DEQUE', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)] } });
           emittedNames.add(varName);
           continue;
         }
-
-        // ── QUEUE ─────────────────────────────────────────────────────────────
-        if (QUEUE_NAMES.test(varName)) {
-          frame.structures.push({
-            id: varName, type: 'QUEUE', name: varName,
-            data: {
-              array: stableArr,
-              activeIndices: [...new Set(changed)],
-              frontIndex: 0,
-              rearIndex:  stableArr.length - 1,
-            },
-          });
+        if (isStackName || aiWantsStack) {
+          frame.structures.push({ id: varName, type: 'STACK', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)], topIndex: stableArr.length - 1 } });
           emittedNames.add(varName);
           continue;
         }
-
-        // ── SET ───────────────────────────────────────────────────────────────
+        if (isQueueName || aiWantsQueue) {
+          frame.structures.push({ id: varName, type: 'QUEUE', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)], frontIndex: 0, rearIndex: stableArr.length - 1 } });
+          emittedNames.add(varName);
+          continue;
+        }
+        if (isDSUName || aiWantsDSU) {
+          frame.structures.push({ id: varName, type: 'DSU', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)] } });
+          emittedNames.add(varName);
+          continue;
+        }
+        if (isSegTreeName || aiWantsSegTree) {
+          frame.structures.push({ id: varName, type: 'SEGMENT_TREE', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)] } });
+          emittedNames.add(varName);
+          continue;
+        }
+        if (aiWantsSort) {
+          frame.structures.push({ id: varName, type: 'SORTING', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)] } });
+          emittedNames.add(varName);
+          continue;
+        }
         if (SET_NAMES.test(varName) && is1DPrimitive(resolved)) {
-          frame.structures.push({
-            id: varName, type: 'SET', name: varName,
-            data: {
-              array: stableArr,
-              activeIndices: [...new Set(changed)],
-            },
-          });
+          frame.structures.push({ id: varName, type: 'SET', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)] } });
           emittedNames.add(varName);
           continue;
         }
 
-        // ── ARRAY (fallback) ──────────────────────────────────────────────────
-        frame.structures.push({
-          id: varName, type: 'ARRAY', name: varName,
-          data: {
-            array: stableArr,
-            activeIndices: [...new Set(changed)],
-          },
-        });
+        frame.structures.push({ id: varName, type: 'ARRAY', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)] } });
         emittedNames.add(varName);
       }
-
       return frame;
     });
 

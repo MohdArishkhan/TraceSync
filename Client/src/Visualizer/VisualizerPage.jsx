@@ -26,7 +26,21 @@ const LANGS = ["python", "javascript", "cpp", "java"];
 //  HELPER: Convert AI analysis → vizType string consumed by TracerWorker
 // ─────────────────────────────────────────────────────────────────────────────
 const getVisualType = (analysis) => {
-  if (!analysis) return null; // worker will auto-detect
+  if (!analysis) return null; 
+
+  // 1. Highest Priority: The exact engine selected by the AI
+  const engine = (analysis.selectedEngine || "").toUpperCase();
+  if (engine.includes("SEGMENT")) return "SEGMENT_TREE";
+  if (engine.includes("DEQUE")) return "DEQUE";
+  if (engine.includes("QUEUE")) return "QUEUE";
+  if (engine.includes("STACK")) return "STACK";
+  if (engine.includes("GRAPH")) return "GRAPH";
+  if (engine.includes("TREE")) return "TREE";
+  if (engine.includes("HEAP")) return "HEAP";
+  if (engine.includes("HASH")) return "HASH_MAP";
+  if (engine.includes("GRID") || engine.includes("MATRIX")) return "MATRIX";
+
+  // 2. Fallback: Guessing from Categories/Algorithms
   const cat = (analysis.templateCategory ?? "").toUpperCase();
   const algo = (analysis.algorithm ?? "").toUpperCase();
 
@@ -38,10 +52,11 @@ const getVisualType = (analysis) => {
   if (cat.includes("GRAPH") || algo.includes("GRAPH")) return "GRAPH";
   if (cat.includes("MATRIX") || algo.includes("MATRIX")) return "MATRIX";
   if (cat.includes("STACK") || algo.includes("STACK")) return "STACK";
+  if (cat.includes("DEQUE") || algo.includes("DEQUE")) return "DEQUE";
   if (cat.includes("QUEUE") || algo.includes("QUEUE")) return "QUEUE";
   if (cat.includes("HASH") || algo.includes("HASH")) return "HASH_MAP";
 
-  return "ARRAY"; // safe default
+  return "ARRAY"; 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -273,9 +288,15 @@ const VisualizerPage = () => {
     });
     monaco.editor.setTheme("vs-dark");
   };
-
   const shared = { language, userCode, handleEditorMount, activeLine, view };
-  const aiProps = { analysis: aiAnalysis, isAnalyzing, error: aiError, runState };
+  
+  const aiProps = { 
+    analysis: aiAnalysis, 
+    isAnalyzing, 
+    error: aiError, 
+    runState,
+    primedEngine: getVisualType(aiAnalysis) 
+  };;
 
   return (
     <>
