@@ -152,8 +152,93 @@ const SET_NAMES   = /^(seen|visited|added|used|s|st|found|instack|onstack)$/i;
 const DSU_NAMES   = /^(parent|dsu|uf|union_find|leader|root|size_arr|rank)$/i;
 const SEG_TREE_NAMES = /^(seg_tree|segtree|st|fenwick|bit|tree_arr)$/i;
 const TRIE_NAMES  = /^(trie|prefix_tree|dict_tree)$/i;
+const NQUEENS_BOARD_NAMES = /^(board)$/i;
+const NQUEENS_SUPPRESS_NAMES = /^(cols|diag1|diag2|col|res|result|results|solutions|backtrack)$/i;
+
+const isNQueens2DMatrix = (arr) => {
+  if (!Array.isArray(arr) || arr.length < 2) return false;
+  const n = arr.length;
+  return arr.every(row =>
+    Array.isArray(row) &&
+    row.length === n &&
+    row.every(cell => cell === '.' || cell === 'Q')
+  );
+};
 
 const is1DPrimitive = (arr) => Array.isArray(arr) && arr.length > 0 && !Array.isArray(arr[0]) && arr.every(v => typeof v !== 'object' || v === null);
+
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const getActiveRowCol = (locals) => {
+  // 1. Prioritize neighbor/next coordinates (The cell being checked)
+  const pairs = [
+    ['nr', 'nc'], ['nx', 'ny'], ['new_r', 'new_c'],
+    ['r', 'c'], ['row', 'col'], ['i', 'j']
+  ];
+  for (const [rName, cName] of pairs) {
+    if (typeof locals[rName] === 'number' && typeof locals[cName] === 'number') {
+      return [locals[rName], locals[cName]];
+    }
+  }
+  return [null, null];
+};
+
+const parseGridCondition = (lineNum, codeLines, varName, resolved, locals) => {
+  let condText = codeLines[(lineNum || 1) - 1] || '';
+  if (!/^\s*(if|while|elif)\b/i.test(condText)) return null;
+
+  let fullText = condText;
+  let lookahead = 0;
+  let openP = (fullText.match(/\(/g) || []).length;
+  let closedP = (fullText.match(/\)/g) || []).length;
+
+  // 1. Piece together multi-line conditions wrapped in parentheses
+  while (openP > closedP && lookahead < 4) {
+    lookahead++;
+    fullText += ' ' + (codeLines[(lineNum || 1) - 1 + lookahead] || '').trim();
+    openP = (fullText.match(/\(/g) || []).length;
+    closedP = (fullText.match(/\)/g) || []).length;
+  }
+
+  // 2. Peek into the block to determine intent (Guard vs Positive)
+  let bodyText = '';
+  for (let i = 1; i <= 3; i++) {
+    let peek = codeLines[(lineNum || 1) - 1 + lookahead + i];
+    if (peek) {
+        if (/^\s*(if|while|elif|for|def)\b/i.test(peek) && i > 1) break; // Reached nested block
+        bodyText += ' ' + peek;
+    }
+  }
+  
+  // If the block breaks/returns/continues, it's a Guard. Otherwise, it's Positive/Passing.
+  const isGuard = /\b(return|continue|break)\b/i.test(bodyText) || /\b(return|continue|break)\b/i.test(fullText);
+
+  let condBody = fullText
+    .replace(/^\s*(if|elif|while)\s*\(?/i, '')
+    .replace(/\)?\s*:?\s*\{?\s*(return.*|continue.*|break.*)?$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  let finalResult = null;
+  const safeVar = escapeRegex(varName);
+
+  // 3. Attempt direct cell-value evaluation (e.g. grid[nr][nc] == 0)
+  const eqPattern = new RegExp(`\\b${safeVar}\\s*\\[\\s*([a-zA-Z_]\\w*)\\s*\\]\\s*\\[\\s*([a-zA-Z_]\\w*)\\s*\\]\\s*(==|!=)\\s*['"]?([\\w.]+)['"]?`);
+  const eqMatch = condBody.match(eqPattern);
+  if (eqMatch) {
+     const [, idx1Name, idx2Name, op, literalRaw] = eqMatch;
+     const idx1 = locals[idx1Name], idx2 = locals[idx2Name];
+     if (typeof idx1 === 'number' && typeof idx2 === 'number' && resolved[idx1]) {
+         const cellVal = resolved[idx1][idx2];
+         let lit = literalRaw;
+         if (/^true$/i.test(lit)) lit = true;
+         else if (/^false$/i.test(lit)) lit = false;
+         finalResult = op === '==' ? String(cellVal) === String(lit) : String(cellVal) !== String(lit);
+     }
+  }
+
+  return { kind: finalResult !== null ? 'evaluated' : 'unknown', result: finalResult, isGuard, checkRow: null, checkCol: null, text: condBody };
+};
 
 const buildHashMap = (resolved, bucketCount = 8, activeKey = null) => {
   if (!resolved || typeof resolved !== 'object' || Array.isArray(resolved)) return null;
@@ -173,6 +258,7 @@ const buildHashMap = (resolved, bucketCount = 8, activeKey = null) => {
 self.onmessage = async (e) => {
   const { url, payload, aiMetadata } = e.data;
   const aiType = aiMetadata?.type;
+  const codeLines = (payload?.code || '').split('\n');
 
   try {
     const response = await fetch(url, {
@@ -253,6 +339,7 @@ self.onmessage = async (e) => {
 
       for (const [varName, rawVal] of Object.entries(locals)) {
         if (/^(dir|dirs|directions|moves|dx|dy|delta)$/i.test(varName)) continue;
+        if (frame._isNQueens && NQUEENS_SUPPRESS_NAMES.test(varName)) continue;
 
         const isQueueName = QUEUE_NAMES.test(varName);
         const aiWantsQueue = aiType === "QUEUE";
@@ -267,8 +354,10 @@ self.onmessage = async (e) => {
         const isTrieName = TRIE_NAMES.test(varName);
         const aiWantsTrie = aiType === "TRIE";
         const aiWantsSort = aiType === "SORTING";
+        const isNQueensName = NQUEENS_BOARD_NAMES.test(varName);
+        const aiWantsNQueens = aiType === "N_QUEENS";
 
-        const isReservedName = isQueueName || aiWantsQueue || isStackName || aiWantsStack || isDequeName || aiWantsDeque || isDSUName || aiWantsDSU || isSegTreeName || aiWantsSegTree || isTrieName || aiWantsTrie || aiWantsSort;
+        const isReservedName = isQueueName || aiWantsQueue || isStackName || aiWantsStack || isDequeName || aiWantsDeque || isDSUName || aiWantsDSU || isSegTreeName || aiWantsSegTree || isTrieName || aiWantsTrie || aiWantsSort || isNQueensName || aiWantsNQueens;
 
         if (!isReservedName && Array.isArray(rawVal) && rawVal[0] === 'REF') {
           const refId = rawVal[1];
@@ -391,6 +480,33 @@ self.onmessage = async (e) => {
         if (!Array.isArray(resolved)) continue;
 
         if (resolved.length > 0 && Array.isArray(resolved[0])) {
+          const aiWantsNQHere = aiType === "N_QUEENS";
+          if ((NQUEENS_BOARD_NAMES.test(varName) || aiWantsNQHere) && isNQueens2DMatrix(resolved)) {
+            const n = resolved.length;
+            const boardArr = resolved.map(row => {
+              const qIdx = row.indexOf('Q');
+              return qIdx >= 0 ? qIdx : -1;
+            });
+            const cRow = typeof locals['row'] === 'number' ? locals['row'] : null;
+            const cCol = typeof locals['col'] === 'number' ? locals['col']
+                       : typeof locals['c']   === 'number' ? locals['c']
+                       : typeof locals['j']   === 'number' ? locals['j'] : null;
+            const placedCount = boardArr.filter(v => v >= 0).length;
+            frame.structures.push({
+              id: varName, type: 'N_QUEENS', name: varName,
+              data: {
+                board: boardArr, n,
+                checkRow: cRow, checkCol: cCol,
+                placedCount,
+                statusText: cRow !== null ? `Row ${cRow}: Checking col ${cCol ?? '—'}...` : '',
+              }
+            });
+            stateHistory.set(varName, { matrix: JSON.parse(JSON.stringify(resolved)) });
+            emittedNames.add(varName);
+            frame._isNQueens = true;
+            continue;
+          }
+
           const history = stateHistory.get(varName) || { matrix: [] };
           const changed = [];
           for (let r = 0; r < resolved.length; r++) {
@@ -402,7 +518,16 @@ self.onmessage = async (e) => {
           if (typeof locals['r'] === 'number' && typeof locals['c'] === 'number') changed.push(`${locals['r']},${locals['c']}`);
           if (typeof locals['row'] === 'number' && typeof locals['col'] === 'number') changed.push(`${locals['row']},${locals['col']}`);
 
-          frame.structures.push({ id: varName, type: 'MATRIX', name: varName, data: { matrix: resolved, activeIndices: [...new Set(changed)] } });
+          // Generic condition logic invoked here
+          const condition = parseGridCondition(step.line, codeLines, varName, resolved, locals);
+          const [activeR, activeC] = getActiveRowCol(locals);
+          const checkRow = condition?.checkRow ?? activeR;
+          const checkCol = condition?.checkCol ?? activeC;
+
+          frame.structures.push({
+            id: varName, type: 'MATRIX', name: varName,
+            data: { matrix: resolved, activeIndices: [...new Set(changed)], checkRow, checkCol, condition }
+          });
           stateHistory.set(varName, { ...history, matrix: JSON.parse(JSON.stringify(resolved)) });
           emittedNames.add(varName);
           continue;
@@ -466,6 +591,14 @@ self.onmessage = async (e) => {
         frame.structures.push({ id: varName, type: 'ARRAY', name: varName, data: { array: stableArr, activeIndices: [...new Set(changed)] } });
         emittedNames.add(varName);
       }
+
+      if (frame.structures.some(s => s.type === 'N_QUEENS')) {
+        frame.structures = frame.structures.filter(s =>
+          s.type === 'N_QUEENS' ||
+          (s.type !== 'RECURSION_TREE' && s.type !== 'SET' && s.type !== 'ARRAY' && !NQUEENS_SUPPRESS_NAMES.test(s.name))
+        );
+      }
+
       return frame;
     });
 

@@ -1,6 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const formatValue = (v) => {
+  if (Array.isArray(v)) return `(${v.join(', ')})`;
+  if (typeof v === 'object' && v !== null) return JSON.stringify(v);
+  return String(v);
+};
+
 export default function DequeEngine({ data }) {
   const items = data?.array ?? [];
   const active = data?.activeIndices ?? [];
@@ -13,7 +19,6 @@ export default function DequeEngine({ data }) {
   useEffect(() => {
     const prev = prevItems.current;
     if (items.length > prev.length) {
-      // Logic to detect if inserted at front or back
       if (prev.length > 0 && items[0].value !== prev[0].value) {
         setLastOp({ type: 'insert', side: 'front' });
       } else {
@@ -34,7 +39,6 @@ export default function DequeEngine({ data }) {
   return (
     <div className="relative flex flex-col items-center justify-center w-full h-full p-8 overflow-hidden bg-transparent">
       
-      {/* Operation HUD */}
       <div className="absolute top-6 flex items-center justify-center h-8 w-full">
         <AnimatePresence mode="wait">
           {lastOp.type === 'insert' && lastOp.side === 'front' && (
@@ -60,21 +64,16 @@ export default function DequeEngine({ data }) {
         </AnimatePresence>
       </div>
 
-      {/* Deque Track (Open on both sides) */}
       <div className="relative flex items-center w-full max-w-4xl min-h-[120px] border-y-2 border-slate-600/50 bg-slate-900/40 backdrop-blur-md shadow-[inset_0_0_30px_rgba(0,0,0,0.4)] mt-6">
-        
-        {/* Bidirectional Glow Effects */}
         <div className="absolute left-0 w-20 h-full bg-gradient-to-r from-fuchsia-500/15 to-transparent pointer-events-none" />
         <div className="absolute right-0 w-20 h-full bg-gradient-to-l from-cyan-500/15 to-transparent pointer-events-none" />
 
-        {/* Empty State */}
         {!items.length && (
           <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-40">
             <span className="text-[10px] font-mono text-slate-500 tracking-widest uppercase">Double-Ended Queue Empty</span>
           </div>
         )}
 
-        {/* Data Cells */}
         <div className="flex items-center gap-3 px-16 relative w-full overflow-x-auto custom-scrollbar py-10">
           <AnimatePresence mode="popLayout" initial={false}>
             {items.map((item, idx) => {
@@ -92,7 +91,6 @@ export default function DequeEngine({ data }) {
                   transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                   className="relative flex flex-col items-center shrink-0"
                 >
-                  {/* HUD Pointers */}
                   <div className="absolute -top-10 flex justify-center w-full">
                     {isFront && (
                       <div className="flex flex-col items-center">
@@ -114,8 +112,7 @@ export default function DequeEngine({ data }) {
                     )}
                   </div>
 
-                  {/* Cell Body */}
-                  <div className={`w-16 h-16 rounded-lg font-mono text-lg font-bold flex items-center justify-center border-2 transition-all duration-300 ${
+                  <div className={`min-w-[4rem] w-auto px-4 h-16 rounded-lg font-mono text-base sm:text-lg font-bold flex items-center justify-center border-2 transition-all duration-300 ${
                     isActive
                       ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.6)]'
                       : isFront
@@ -124,10 +121,9 @@ export default function DequeEngine({ data }) {
                           ? 'bg-slate-800 text-cyan-200 border-cyan-500/50 shadow-[inset_0_0_15px_rgba(6,182,212,0.2)]'
                           : 'bg-slate-800/80 text-slate-300 border-slate-600/50'
                   }`}>
-                    <span className="truncate px-2 drop-shadow-md">{item.value ?? item}</span>
+                    <span className="whitespace-nowrap drop-shadow-md">{formatValue(item.value ?? item)}</span>
                   </div>
 
-                  {/* Index */}
                   <div className="absolute -bottom-7 text-[9px] font-mono text-slate-500 bg-slate-900/80 px-2 rounded-md border border-slate-700/50">
                     {idx}
                   </div>
@@ -138,7 +134,6 @@ export default function DequeEngine({ data }) {
         </div>
       </div>
 
-      {/* Legend / Info Panel */}
       <div className="mt-10 flex items-center gap-6 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 backdrop-blur-md shadow-lg">
         <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
           <div className="w-3 h-3 rounded-sm bg-fuchsia-500/30 border border-fuchsia-500/50" />

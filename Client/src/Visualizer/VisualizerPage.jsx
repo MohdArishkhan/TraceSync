@@ -30,6 +30,7 @@ const getVisualType = (analysis) => {
 
   // 1. Highest Priority: The exact engine selected by the AI
   const engine = (analysis.selectedEngine || "").toUpperCase();
+  if (engine.includes("N_QUEENS") || engine.includes("NQUEENS") || engine.includes("QUEENS")) return "N_QUEENS";
   if (engine.includes("SEGMENT")) return "SEGMENT_TREE";
   if (engine.includes("DEQUE")) return "DEQUE";
   if (engine.includes("QUEUE")) return "QUEUE";
@@ -45,6 +46,7 @@ const getVisualType = (analysis) => {
   const algo = (analysis.algorithm ?? "").toUpperCase();
 
   if (cat.includes("BST") || algo.includes("BST")) return "BST";
+  if (cat.includes("N_QUEENS") || algo.includes("N_QUEENS") || cat.includes("QUEENS") || algo.includes("QUEENS") || cat.includes("BACKTRACK") || algo.includes("N QUEEN")) return "N_QUEENS";
   if (cat.includes("TREE") || algo.includes("TREE")) return "TREE";
   if (cat.includes("TRIE") || algo.includes("TRIE")) return "TRIE";
   if (cat.includes("HEAP") || algo.includes("HEAP")) return "HEAP";

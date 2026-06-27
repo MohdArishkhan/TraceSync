@@ -9,6 +9,7 @@ import QueueEngine from './QueueEngine';
 import DequeEngine from './DequeEngine';
 import DSUEngine from './DSUEngine';
 import SegmentTreeEngine from './SegmentTreeEngine';
+import NQueensEngine from './NQueensEngine';
 
 const FloatingVariables = ({ variables }) => {
   if (!variables || variables.length === 0) return null;
@@ -27,7 +28,7 @@ const FloatingVariables = ({ variables }) => {
             <span className="text-pink-400 font-mono text-xs font-semibold">{v.name}</span>
             <span className="text-slate-500 text-[10px]">=</span>
             <motion.span 
-              key={v.value || v.role} // value ni hai to AI wala role hi dikha de
+              key={v.value || v.role}
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-[#00b8a3] font-mono text-xs font-bold"
@@ -119,6 +120,178 @@ function GridEngine({ data, compact = false }) {
     </div>
   );
 }
+
+function SmartGridEngine({ data, compact = false }) {
+  const matrix = data?.matrix || [];
+  const activeIndices = data?.activeIndices || [];
+  const checkRow = data?.checkRow ?? null;
+  const checkCol = data?.checkCol ?? null;
+  const condition = data?.condition ?? null;
+  const display = (val) => (val?.value !== undefined ? val.value : val);
+
+  const rows = matrix.length;
+  const cols = rows > 0 ? matrix[0].length : 0;
+
+  // New Intent-Aware color mapping:
+  const isGuard = condition?.isGuard ?? false;
+  const isBlocked = !!condition && condition.result !== null && ((isGuard && condition.result === true) || (!isGuard && condition.result === false));
+  const isPassing = !!condition && condition.result !== null && ((isGuard && condition.result === false) || (!isGuard && condition.result === true));
+  const hasCheckCell = checkRow !== null && checkCol !== null && checkRow < rows && checkCol < cols;
+
+  const cellSize = compact ? 30 : (cols <= 6 ? 56 : cols <= 10 ? 46 : cols <= 16 ? 36 : 28);
+
+  if (rows === 0) {
+    return (
+      <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono tracking-widest uppercase">
+        Waiting for grid data…
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col w-full h-full overflow-hidden select-none bg-transparent">
+      {/* ── TOP HUD ── */}
+      {!compact && (
+        <div className="flex items-center justify-between px-5 pt-4 pb-2 flex-shrink-0 gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-[10px] font-mono text-indigo-400 uppercase tracking-widest shadow-sm">
+              Grid {rows}×{cols}
+            </span>
+            <span className="px-2.5 py-1 rounded-md bg-slate-800/60 border border-slate-700/60 text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+              {data?.name ?? ''}
+            </span>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {isBlocked ? (
+              <motion.span key="blocked"
+                initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                className="px-3 py-1 rounded-full bg-red-500/15 border border-red-500/40 text-[11px] font-bold text-red-400 tracking-wide whitespace-nowrap max-w-[55%] truncate">
+                ✗ {condition.text}
+              </motion.span>
+            ) : isPassing ? (
+              <motion.span key="passing"
+                initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-[11px] font-bold text-emerald-400 tracking-wide whitespace-nowrap max-w-[55%] truncate">
+                ✓ {condition.text}
+              </motion.span>
+            ) : condition ? (
+              <motion.span key="checking-cond"
+                initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-semibold text-amber-400 tracking-wide whitespace-nowrap max-w-[55%] truncate">
+                Checking: {condition.text}
+              </motion.span>
+            ) : hasCheckCell ? (
+              <motion.span key="visiting"
+                initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-semibold text-amber-400 tracking-wide whitespace-nowrap">
+                Visiting ({checkRow}, {checkCol})
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* ── GRID ── */}
+      <div className={`flex-1 flex items-center justify-center overflow-auto ${compact ? 'p-2' : 'p-4'}`}>
+        <div className="flex flex-col items-start">
+          {!compact && (
+            <div className="flex" style={{ marginLeft: cellSize * 0.6 + 'px' }}>
+              {Array.from({ length: cols }, (_, c) => (
+                <div key={c} style={{ width: cellSize }} className="text-center text-[10px] font-mono text-slate-500 leading-none mb-1">{c}</div>
+              ))}
+            </div>
+          )}
+          <div className="flex">
+            {!compact && (
+              <div className="flex flex-col" style={{ width: cellSize * 0.55 + 'px' }}>
+                {Array.from({ length: rows }, (_, r) => (
+                  <div key={r} style={{ height: cellSize }} className="flex items-center justify-center text-[10px] font-mono text-slate-500">{r}</div>
+                ))}
+              </div>
+            )}
+            <div className="relative" style={{ width: cellSize * cols, height: cellSize * rows }}>
+              {matrix.map((row, rIdx) =>
+                row.map((val, cIdx) => {
+                  const isChanged = activeIndices.includes(`${rIdx},${cIdx}`);
+                  const isCheckCell = rIdx === checkRow && cIdx === checkCol;
+                  const dVal = display(val);
+                  const isLight = (rIdx + cIdx) % 2 === 0;
+
+                  let bg;
+                  if (isCheckCell && isBlocked) bg = '#7f1d1d';
+                  else if (isCheckCell && isPassing) bg = 'rgba(16,185,129,0.35)';
+                  else if (isCheckCell) bg = 'rgba(251,191,36,0.32)';
+                  else if (isChanged) bg = isLight ? 'rgba(99,102,241,0.35)' : 'rgba(99,102,241,0.5)';
+                  else bg = isLight ? '#334155' : '#1e293b';
+
+                  return (
+                    <div
+                      key={`${rIdx}-${cIdx}`}
+                      className="absolute flex items-center justify-center font-bold"
+                      style={{
+                        left: cIdx * cellSize, top: rIdx * cellSize, width: cellSize, height: cellSize,
+                        background: bg, outline: '1px solid rgba(51,65,85,0.5)',
+                        transition: 'background 0.22s ease',
+                        fontSize: compact ? 10 : 13,
+                        color: isCheckCell ? '#fff' : '#cbd5e1',
+                      }}
+                    >
+                      {isCheckCell && (
+                        <div className={`absolute inset-0 border-2 pointer-events-none z-20 ${isBlocked ? 'border-red-300' : isPassing ? 'border-emerald-300' : 'border-amber-400'}`} />
+                      )}
+                      <span className={dVal === '.' || dVal === 0 || dVal === '0' ? 'opacity-30' : ''}>
+                        {String(dVal)}
+                      </span>
+                      {isCheckCell && !isBlocked && (
+                        <motion.div
+                          animate={{ scale: [0.5, 1.1, 0.5], opacity: [0.4, 0.9, 0.4] }}
+                          transition={{ repeat: Infinity, duration: 1.3 }}
+                          className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-300"
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── BOTTOM STATUS BAR ── */}
+      {!compact && (
+        <div className="flex-shrink-0 flex items-center justify-between px-5 py-2.5 border-t border-slate-700/40 bg-slate-900/20">
+          <div className="flex items-center gap-4 flex-wrap">
+            <LegendDot color="rgba(251,191,36,0.6)" label="Checking" />
+            <LegendDot color="rgba(127,29,29,0.8)" label="Blocked" />
+            <LegendDot color="rgba(16,185,129,0.5)" label="Passes" />
+            <LegendDot color="rgba(99,102,241,0.5)" label="Just changed" />
+          </div>
+          <div className="font-mono text-[11px] italic max-w-[260px] truncate"
+            style={{ color: isBlocked ? '#fca5a5' : isPassing ? '#6ee7b7' : '#94a3b8' }}>
+            {isBlocked
+              ? `${condition.text} — blocked, backtracking`
+              : isPassing
+              ? `${condition.text} — passes, continuing`
+              : condition
+              ? `Evaluating: ${condition.text}`
+              : hasCheckCell
+              ? `Visiting (${checkRow}, ${checkCol})…`
+              : 'Scanning…'}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const LegendDot = ({ color, label }) => (
+  <div className="flex items-center gap-1.5">
+    <div className="w-3 h-3 rounded-sm border border-slate-600/40" style={{ background: color }} />
+    <span className="text-[10px] font-mono text-slate-500">{label}</span>
+  </div>
+);
 
 function SVGEngine({ data }) {
   const { nodes, links } = useMemo(() => {
@@ -235,6 +408,7 @@ function PhysicsEngine({ data }) {
 const EngineRenderer = ({ structure, compact = false }) => {
   const type = (structure.type ?? '').toUpperCase().trim();
   switch (type) {
+    case "N_QUEENS": return <NQueensEngine data={structure.data} />;
     case "SEGMENT_TREE": return <SegmentTreeEngine data={structure.data} />;
     case "DSU": return <DSUEngine data={structure.data} />;
     case "RECURSION_TREE": return <RecursionTreeEngine data={structure.data} />;
@@ -247,7 +421,7 @@ const EngineRenderer = ({ structure, compact = false }) => {
     case "HEAP": return <GridEngine data={structure.data} compact={compact} />;
     case "HASH_MAP":
     case "SET": return <GridEngine data={structure.data} compact={compact} />;
-    case "MATRIX":
+    case "MATRIX": return <SmartGridEngine data={{ ...structure.data, name: structure.name }} compact={compact} />;
     case "ARRAY": return <GridEngine data={structure.data} compact={compact} />;
     default:
       return (
@@ -262,6 +436,8 @@ const EngineRenderer = ({ structure, compact = false }) => {
 };
 
 const getRank = (type) => {
+  if (type === 'N_QUEENS') return 6;
+  if (type === 'MATRIX') return 5.5;
   if (type === 'RECURSION_TREE') return 5;
   if (type === 'DSU') return 4.5;
   if (type === 'SEGMENT_TREE') return 4.5;
@@ -270,7 +446,6 @@ const getRank = (type) => {
   if (type === 'STACK' || type === 'QUEUE') return 3.5;
   if (type === 'TREE') return 3;
   if (type === 'LINKED_LIST') return 3;
-  if (type === 'MATRIX') return 2;
   return 1;
 };
 
@@ -286,8 +461,6 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
 
   const structures = currentFrame.structures;
 
-  // 👇 ADDED: AI FALLBACK VIEW block
-  // Agar runtime frame aane wala hai lekin trace khali hai (structures=0), aur AI ka data hai to seedha us layout pe fallback karo.
   if (structures.length === 0 && aiFallbackEngine) {
     const synchronizedMockData = {
       id: "ai-primed-view",
@@ -307,7 +480,6 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
             </span>
           </div>
           <div className="relative bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl flex-1 w-full min-h-0">
-             {/* Purana EngineRenderer reuse kar liya bina structure chhode */}
             <EngineRenderer structure={{ type: aiFallbackEngine, data: synchronizedMockData }} compact={false} />
           </div>
         </div>
@@ -326,19 +498,26 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
 
   const sortedStructs = [...structures].sort((a, b) => getRank(b.type) - getRank(a.type));
   const primary = sortedStructs[0];
-  const auxiliary = sortedStructs.slice(1);
+
+  const FULL_CANVAS_TYPES = new Set(['N_QUEENS']);
+  const OWN_HUD_TYPES = new Set(['N_QUEENS', 'MATRIX', 'DSU']);
+  const auxiliary = FULL_CANVAS_TYPES.has(primary.type)
+    ? []
+    : sortedStructs.slice(1).filter(s => s.type !== 'RECURSION_TREE' || primary.type === 'RECURSION_TREE');
 
   return (
     <div className="relative w-full h-full flex flex-col bg-[#0f172a] overflow-hidden">
       <FloatingVariables variables={currentFrame.variables} />
       
       <div className="flex-1 relative min-h-[300px]">
-        <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2 pointer-events-none">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-md bg-slate-800/80 border border-slate-600/80 text-xs font-mono text-indigo-400 uppercase tracking-widest shadow-sm">{primary.type}</span>
-            <span className="px-3 py-1 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-xs font-mono text-indigo-200 shadow-sm">{primary.name}</span>
+        {!OWN_HUD_TYPES.has(primary.type) && (
+          <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2 pointer-events-none">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-md bg-slate-800/80 border border-slate-600/80 text-xs font-mono text-indigo-400 uppercase tracking-widest shadow-sm">{primary.type}</span>
+              <span className="px-3 py-1 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-xs font-mono text-indigo-200 shadow-sm">{primary.name}</span>
+            </div>
           </div>
-        </div>
+        )}
         <EngineRenderer structure={primary} compact={false} />
       </div>
 
@@ -360,5 +539,3 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
     </div>
   );
 }
-
-
