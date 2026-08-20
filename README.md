@@ -89,14 +89,10 @@ npm run dev
 - Express.js
 - Google Generative AI (Gemini)
 
-## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
 - Google Generative AI for the Gemini API
-- Flutter team for the amazing framework
-- Made with ❤️ by Aditya Kumar Rajput and Harsh Gupta
 - 2026
