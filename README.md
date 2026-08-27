@@ -39,9 +39,6 @@ CodeDoodle integrates **real-time code sharing**, **AI-powered code reviews**, *
 - Codedoodle ChatBot
 <img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/chatbot_sumch1.png" alt="Codedoodle Chatbot" />
 
-- Video Meeting using WebRTC
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/meeting_adi_harsh_iao6xv.png" alt="Video Meeting using WebRTC" />
-
 - Workspace
 <img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/workspace_g526bc.png"  alt="workspace" />
 
