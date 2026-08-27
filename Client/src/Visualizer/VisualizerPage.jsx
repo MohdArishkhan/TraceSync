@@ -4,7 +4,7 @@ import { VscDebugAlt } from "react-icons/vsc";
 import EditorPanel from "./EditorPanel";
 import VisualPanel from "./VisualPanel";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export const TRACE_ENDPOINTS = {
   python: "/api/execute/trace-py",
