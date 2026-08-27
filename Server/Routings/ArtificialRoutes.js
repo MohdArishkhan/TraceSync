@@ -36,20 +36,22 @@ router.post('/api/ai/analyze', async (req, res) => {
             }
             
             ### Routing Rules for "selectedEngine":
-            Choose ONLY from the following list. Prioritize the primary visual representation of the problem's domain over its underlying mechanics (e.g., N-Queens uses recursion, but it is fundamentally a board problem, so choose "GridEngine"). If none apply, return "None".
+            Choose ONLY from the following list. Prioritize the primary visual representation of the problem's domain over its underlying mechanics (e.g., if it is fundamentally a board problem, choose the specific board engine over recursion). If none apply, return "None".
             
             1. "DequeEngine" - For double-ended queue operations.
             2. "DSUEngine" - For Disjoint Set Union (Union-Find), connected components, dynamic connectivity, and cycle detection.
-            3. "GridEngine" - For 2D matrices, board games (Chess/N-Queens), Sudoku, Mazes, and 2D DP grids.
+            3. "GridEngine" - For 2D matrices, general board games (Chess), Sudoku, Mazes, and 2D DP grids.
             4. "HashMapEngine" - For key-value pair mapping, hashing, and frequency counting.
             5. "HeapEngine" - For priority queues, min-heap, max-heap, and heap sort.
-            6. "PhysicsGraphEngine" - For nodes and edges, shortest path (Dijkstra), MST, and network routing.
-            7. "PolymorphicRouter" - For dynamic request handling, polymorphic behavior evaluation, or routing structures.
-            8. "QueueEngine" - For standard FIFO operations, level-order traversals, and scheduling.
-            9. "RecursionTreeEngine" - For visualizing pure function call stacks, recursive depths, and overlapping subproblems (like Fibonacci DP).
-            10. "SegmentTreeEngine" - For range query structures, interval trees, range sum, and range minimum queries.
-            11. "StackEngine" - For LIFO operations, valid parentheses, monotonic stacks, and basic DFS tracking.
-            12. "SvgTreeEngine" - For Binary Trees, BSTs, Tries, and parent-child hierarchical data.`
+            6. "LinkedListEngine" - For singly and doubly linked lists, node pointer manipulation, list reversal, and cycle detection (Floyd's).
+            7. "NQueensEngine" - For visualizing the N-Queens problem and backtracking solutions on a chessboard.
+            8. "PhysicsGraphEngine" - For nodes and edges, shortest path (Dijkstra), MST, and network routing.
+            9. "PolymorphicRouter" - For dynamic request handling, polymorphic behavior evaluation, or routing structures.
+            10. "QueueEngine" - For standard FIFO operations, level-order traversals, and scheduling.
+            11. "RecursionTreeEngine" - For visualizing pure function call stacks, recursive depths, and overlapping subproblems (like Fibonacci DP).
+            12. "SegmentTreeEngine" - For range query structures, interval trees, range sum, and range minimum queries.
+            13. "StackEngine" - For LIFO operations, valid parentheses, monotonic stacks, and basic DFS tracking.
+            14. "SvgTreeEngine" - For Binary Trees, BSTs, Tries, and parent-child hierarchical data.`
           },
           {
             role: "user",

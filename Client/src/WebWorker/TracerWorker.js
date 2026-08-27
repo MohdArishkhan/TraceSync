@@ -170,7 +170,6 @@ const is1DPrimitive = (arr) => Array.isArray(arr) && arr.length > 0 && !Array.is
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const getActiveRowCol = (locals) => {
-  // 1. Prioritize neighbor/next coordinates (The cell being checked)
   const pairs = [
     ['nr', 'nc'], ['nx', 'ny'], ['new_r', 'new_c'],
     ['r', 'c'], ['row', 'col'], ['i', 'j']
@@ -192,7 +191,6 @@ const parseGridCondition = (lineNum, codeLines, varName, resolved, locals) => {
   let openP = (fullText.match(/\(/g) || []).length;
   let closedP = (fullText.match(/\)/g) || []).length;
 
-  // 1. Piece together multi-line conditions wrapped in parentheses
   while (openP > closedP && lookahead < 4) {
     lookahead++;
     fullText += ' ' + (codeLines[(lineNum || 1) - 1 + lookahead] || '').trim();
@@ -200,17 +198,15 @@ const parseGridCondition = (lineNum, codeLines, varName, resolved, locals) => {
     closedP = (fullText.match(/\)/g) || []).length;
   }
 
-  // 2. Peek into the block to determine intent (Guard vs Positive)
   let bodyText = '';
   for (let i = 1; i <= 3; i++) {
     let peek = codeLines[(lineNum || 1) - 1 + lookahead + i];
     if (peek) {
-        if (/^\s*(if|while|elif|for|def)\b/i.test(peek) && i > 1) break; // Reached nested block
+        if (/^\s*(if|while|elif|for|def)\b/i.test(peek) && i > 1) break;
         bodyText += ' ' + peek;
     }
   }
   
-  // If the block breaks/returns/continues, it's a Guard. Otherwise, it's Positive/Passing.
   const isGuard = /\b(return|continue|break)\b/i.test(bodyText) || /\b(return|continue|break)\b/i.test(fullText);
 
   let condBody = fullText
@@ -222,7 +218,6 @@ const parseGridCondition = (lineNum, codeLines, varName, resolved, locals) => {
   let finalResult = null;
   const safeVar = escapeRegex(varName);
 
-  // 3. Attempt direct cell-value evaluation (e.g. grid[nr][nc] == 0)
   const eqPattern = new RegExp(`\\b${safeVar}\\s*\\[\\s*([a-zA-Z_]\\w*)\\s*\\]\\s*\\[\\s*([a-zA-Z_]\\w*)\\s*\\]\\s*(==|!=)\\s*['"]?([\\w.]+)['"]?`);
   const eqMatch = condBody.match(eqPattern);
   if (eqMatch) {
@@ -304,6 +299,7 @@ self.onmessage = async (e) => {
       };
 
       const rootNodes = currentTreeSnapshot.children;
+      // We still generate the tree structure, but we will filter it out below if it's not needed
       if (rootNodes.length > 0 && (rootNodes.some(n => n.children?.length > 0) || rootNodes.length > 1)) {
         frame.structures.push({
           id: 'recursion_trace', type: 'RECURSION_TREE', name: 'Call Stack Tree',
@@ -518,7 +514,6 @@ self.onmessage = async (e) => {
           if (typeof locals['r'] === 'number' && typeof locals['c'] === 'number') changed.push(`${locals['r']},${locals['c']}`);
           if (typeof locals['row'] === 'number' && typeof locals['col'] === 'number') changed.push(`${locals['row']},${locals['col']}`);
 
-          // Generic condition logic invoked here
           const condition = parseGridCondition(step.line, codeLines, varName, resolved, locals);
           const [activeR, activeC] = getActiveRowCol(locals);
           const checkRow = condition?.checkRow ?? activeR;
@@ -592,11 +587,17 @@ self.onmessage = async (e) => {
         emittedNames.add(varName);
       }
 
+      // --- FILTER LOGIC ---
+      // 1. Cleanup N_QUEENS suppressions
       if (frame.structures.some(s => s.type === 'N_QUEENS')) {
         frame.structures = frame.structures.filter(s =>
           s.type === 'N_QUEENS' ||
           (s.type !== 'RECURSION_TREE' && s.type !== 'SET' && s.type !== 'ARRAY' && !NQUEENS_SUPPRESS_NAMES.test(s.name))
         );
+      } 
+      // 2. Kill the Recursion Tree if the primary problem is a flat/linear structure
+      else if (aiType && ['ARRAY', 'LINKED_LIST', 'STACK', 'QUEUE', 'DEQUE', 'HASH_MAP', 'SET', 'HEAP', 'SORTING', 'MATRIX'].includes(aiType)) {
+        frame.structures = frame.structures.filter(s => s.type !== 'RECURSION_TREE');
       }
 
       return frame;
