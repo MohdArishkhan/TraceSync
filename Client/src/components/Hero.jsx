@@ -1,390 +1,254 @@
-// original code
-// import { useGSAP } from "@gsap/react";
-// import gsap from "gsap";
-// import ScrollTrigger from "gsap/ScrollTrigger";
-// import React, { useRef, useState } from "react";
-// import { MdOpenInNew } from "react-icons/md";
-// import { Navigate, useNavigate } from "react-router-dom";
-// import { FaMagnifyingGlass } from "react-icons/fa6";
-// import { useAppContext } from "../Context/AppContext";
-// import { Toaster, toast } from "react-hot-toast";
-
-// gsap.registerPlugin(ScrollTrigger);
-
-// function Hero({ isLightMode, setisLightMode }) {
-//   const Navigate = useNavigate();
-//   const { userData, setUserData } = useAppContext();
-//   const [Query, setQuery] = useState("");
-
-//   const h1Ref = useRef(null);
-
-//   const pageMap = {
-//     home: "/home",
-//     about: "/about",
-//     developer: "/Developer",
-//     contact: "/Contact",
-//     "code reviewer": "/CodeReviewer",
-//     "chat box": "/ChatDesktop",
-//     "codedoodle meeting": "/Ask",
-//     "code editor":"/RoomPage"
-//   };
-
-//   function findPage() {
-//     if (!userData) {
-//       toast.error("Login/Register to access the tools");
-//       return;
-//     }
-//     // if(!userData?.isAccountVerified){
-//     //   toast.error("Verify Account to access the tools");
-//     //   return;
-//     // }
-//     if (!Query) {
-//       toast.error("Please enter a page name");
-//       return;
-//     }
-//     const targetedPage = pageMap[Query.toLowerCase()];
-//     if (targetedPage) {
-//       Navigate(targetedPage);
-//     } else {
-//       alert("Page Not Found");
-//     }
-//   }
-
-//   const breakTheText = () => {
-//     const h1 = h1Ref.current;
-//     const h1text = h1.textContent;
-//     const splittedText = h1text.split("");
-//     const halfvalue = Math.floor(splittedText.length / 2);
-//     let clutter = "";
-
-//     splittedText.forEach((char, idx) => {
-//       if (idx < halfvalue) {
-//         clutter += `<span class="firstHalf">${char}</span>`;
-//       } else {
-//         clutter += `<span class="secondHalf">${char}</span>`;
-//       }
-//     });
-
-//     h1.innerHTML = clutter;
-//   };
-
-//   useGSAP(() => {
-//     breakTheText();
-//     gsap.set(h1Ref.current, { perspective: 1000 });
-
-//     gsap.set(".firstHalf", {
-//       rotateX: -90,
-//       y: -100,
-//       opacity: 0,
-//       transformOrigin: "top center",
-//     });
-//     gsap.set(".secondHalf", {
-//       rotateX: -90,
-//       y: -100,
-//       opacity: 0,
-//       transformOrigin: "top center",
-//     });
-
-//     let tl = gsap.timeline();
-//     tl.to(".firstHalf", {
-//       rotateX: 0,
-//       y: 0,
-//       opacity: 1,
-//       stagger: 0.04,
-//       duration: 1,
-//       ease: "power2.out",
-//     });
-//     tl.to(
-//       ".secondHalf",
-//       {
-//         rotateX: 0,
-//         y: 0,
-//         opacity: 1,
-//         stagger: 0.04,
-//         duration: 1,
-//         ease: "power2.out",
-//       },
-//       "-=1"
-//     );
-
-//     gsap.to(h1Ref.current, {
-//       scale: 1.4,
-//       scrollTrigger: {
-//         trigger: h1Ref.current,
-//         start: "top center",
-//         end: "bottom top",
-//         scrub: true,
-//       },
-//       ease: "power1.out",
-//     });
-//   }, []);
-
-//   return (
-//     <>
-//       <Toaster />
-//       <div
-//         className={`flex flex-col items-center overflow-hidden justify-center py-10 pt-16 gap-y-10 sm:px-24 ${
-//           isLightMode ? "bg-white" : "bg-gray-950"
-//         }`}
-//       >
-//         {/* <button className="bg-green-600 font-semibold text-sm md:text-base text-yellow-200 hover:bg-green-500 focus:ring-4 focus:ring-gray-300 rounded-lg px-5 py-3 mb-6 focus:outline-none">
-//     Free 30 Days Trial
-//   </button> */}
-
-//         {/* Hi Aditya 👋 Heading */}
-//         <h1
-//           className={`text-2xl sm:text-2xl md:text-3xl lg:text-4xl text-center font-bold ${
-//             isLightMode ? "text-blue-400" : "text-green-400"
-//           }`}
-//         >
-//           Hi {userData ? userData.name : "Developer"} ! 👋
-//         </h1>
-
-//         {/* Main Animated Heading */}
-//         <div className=" h-hit w-fit flex justify-center px-11 lg:px-0">
-//           <h1
-//             ref={h1Ref}
-//             className={`${
-//               isLightMode ? "text-black" : "text-white"
-//             } text-center font-bold max-w-6xl leading-tight text-1xl md:text-4xl lg:text-5xl sm:px-8 md:px-16`}
-//           >
-//             Empowering Developers: Share, Collaborate, and Innovate with Code.
-//           </h1>
-//         </div>
-
-//         <div className="w-full h-fit bg-pink gap-3 flex flex-row px-32 justify-center">
-//           <input
-//             list="pages"
-//             className={`w-80 flex flex-row gap-2 px-2 py-2 lg:p-3 rounded-lg ${
-//               isLightMode ? "bg-slate-200 text-black" : "bg-gray-900 text-white"
-//             }`}
-//             placeholder="Search ..."
-//             value={Query}
-//             onChange={(e) => setQuery(e.target.value)}
-//           />
-//           <datalist id="pages">
-//             {/* <option value="About" />
-//             <option value="Developer" />
-//             <option value="Contact" /> */}
-//             <option value="Code Reviewer" />
-//             <option value="Chat Box" />
-//             <option value="Code Editor"/>
-//             <option value="CodeDoodle Meeting" />
-//           </datalist>
-//           <button
-//             className={`active:scale-95 hover:scale-90 transform transition-all duration-300   ${
-//               isLightMode
-//                 ? "active:bg-blue-800 bg-blue-500 rounded-lg hover:bg-blue-700"
-//                 : "bg-green-500 rounded-lg hover:bg-green-700 active:bg-green-800 "
-//             } text-white p-2 px-4`}
-//             onClick={() => findPage()}
-//           >
-//             <FaMagnifyingGlass />
-//           </button>
-//         </div>
-//         {/* Description */}
-//         <h2
-//           className={`text-sm sm:text-base md:text-lg text-center ${
-//             isLightMode ? "text-black" : "text-white"
-//           } font-medium max-w-3xl mt-6 text-gray-700`}
-//         >
-//           Collaborative Coding and Platform Highlights.
-//         </h2>
-
-//         <button
-//           onClick={() => (!userData ? toast.error("Login/Register to access the tools") : Navigate("/RoomPage")) }
-//           className={`${
-//             isLightMode ? "bg-blue-600" : "bg-green-600"
-//           } text-white px-4 py-2 font-light lg:px-6 lg:py-3 ${
-//             userData ? "" : " cursor-not-allowed"
-//           } rounded-full text_dm lg:text-lg lg:font-semibold hover:bg-transparent ${
-//             isLightMode
-//               ? "border hover:border-blue-600 hover:text-blue-600"
-//               : "border hover:border-green-600 hover:text-green-600"
-//           } flex items-center gap-2 transition duration-300`}
-//         >
-//           Get Started <MdOpenInNew className="text-xl" />
-//         </button>
-//       </div>
-//     </>
-//   );
-// }
-
-// export default Hero;
-
-
-// my changed code
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import ScrollTrigger from "gsap/ScrollTrigger";
-import React, { useRef } from "react";
-import { 
-  MdOutlineCode, 
-  MdChat, 
-  MdVideocam, 
-  MdRateReview,
-  MdAccountTree // Naya icon Code Visualizer ke liye
-} from "react-icons/md";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../Context/AppContext";
 import { Toaster, toast } from "react-hot-toast";
+import { motion } from "framer-motion";
+import { Terminal, Sparkles, Play, ArrowRight, Video, Mic, Code2 } from "lucide-react";
+import HeroBackground3D from "./HeroBackground3D";
 
-gsap.registerPlugin(ScrollTrigger);
-
-function Hero({ isLightMode, setisLightMode }) {
+function Hero({ isLightMode }) {
   const navigate = useNavigate();
   const { userData } = useAppContext();
-  const containerRef = useRef(null);
-
-  const headingText = "Empowering Developers: Share, Collaborate, and Innovate with Code.";
-  const splittedText = headingText.split("");
-  const halfValue = Math.floor(splittedText.length / 2);
+  const [activeTab, setActiveTab] = useState("collaborate.js");
 
   const handleNavigation = (path) => {
     if (!userData) {
-      toast.error("Please Login/Register to access the tools.");
+      toast.error("Please login to start a session");
       return;
     }
     navigate(path);
   };
 
-  const toolsData = [
-    {
-      title: "Code Editor",
-      subtitle: "Real-time collaborative workspace",
-      path: "/RoomPage",
-      icon: <MdOutlineCode className="text-3xl" />,
-      themeClass: isLightMode 
-        ? "bg-blue-600 hover:bg-blue-700 shadow-[0_4px_20px_rgba(37,99,235,0.4)]" 
-        : "bg-blue-500 hover:bg-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.5)]"
-    },
-    {
-      title: "CodeDoodle",
-      subtitle: "Video meetings & whiteboards",
-      path: "/Ask",
-      icon: <MdVideocam className="text-3xl" />,
-      themeClass: isLightMode 
-        ? "bg-purple-600 hover:bg-purple-700 shadow-[0_4px_20px_rgba(147,51,234,0.4)]" 
-        : "bg-purple-500 hover:bg-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.5)]"
-    },
-    {
-      title: "AI Reviewer",
-      subtitle: "Intelligent code analysis",
-      path: "/CodeReviewer",
-      icon: <MdRateReview className="text-3xl" />,
-      themeClass: isLightMode 
-        ? "bg-green-600 hover:bg-green-700 shadow-[0_4px_20px_rgba(22,163,74,0.4)]" 
-        : "bg-green-500 hover:bg-green-400 shadow-[0_0_25px_rgba(34,197,94,0.5)]"
-    },
-    {
-      title: "Chat Box",
-      subtitle: "Instant developer messaging",
-      path: "/ChatDesktop",
-      icon: <MdChat className="text-3xl" />,
-      themeClass: isLightMode 
-        ? "bg-pink-600 hover:bg-pink-700 shadow-[0_4px_20px_rgba(219,39,119,0.4)]" 
-        : "bg-pink-500 hover:bg-pink-400 shadow-[0_0_25px_rgba(236,72,153,0.5)]"
-    },
-    {
-      // Yahan add hua hai naya Code Visualizer button
-      title: "Code Visualizer",
-      subtitle: "Step-by-step execution flow",
-      path: "/Visualizer", // Aap is path ko apne hisaab se update kar lena
-      icon: <MdAccountTree className="text-3xl" />,
-      themeClass: isLightMode 
-        ? "bg-orange-600 hover:bg-orange-700 shadow-[0_4px_20px_rgba(234,88,12,0.4)]" 
-        : "bg-orange-500 hover:bg-orange-400 shadow-[0_0_25px_rgba(249,115,22,0.5)]"
-    }
+  const codeLines = [
+    { id: 1, code: 'import { createSession } from "@tracesync/sync";', color: "text-purple-400" },
+    { id: 2, code: "", color: "" },
+    { id: 3, code: "export default async function collaborate() {", color: "text-blue-400" },
+    { id: 4, code: '  const room = await createSession({ audio: true, video: true });', color: "text-emerald-400", indent: 2 },
+    { id: 5, code: '  room.sync("state", (peer) => `${peer.name} connected`);', color: "text-amber-400", indent: 2 },
+    { id: 6, code: '  return "Code together. Talk together.";', color: "text-pink-400", indent: 2 },
+    { id: 7, code: "}", color: "text-blue-400" },
   ];
-
-  useGSAP(() => {
-    gsap.set(containerRef.current, { perspective: 1000 });
-    gsap.set(".firstHalf, .secondHalf", { rotateX: -90, y: -100, opacity: 0, transformOrigin: "top center" });
-    
-    let tl = gsap.timeline();
-    
-    tl.to(".firstHalf", { rotateX: 0, y: 0, opacity: 1, stagger: 0.04, duration: 1, ease: "power2.out" })
-      .to(".secondHalf", { rotateX: 0, y: 0, opacity: 1, stagger: 0.04, duration: 1, ease: "power2.out" }, "-=1");
-
-    tl.from(".action-btn", {
-      y: 30,
-      scale: 0.8,
-      opacity: 0,
-      stagger: 0.1,
-      duration: 0.6,
-      ease: "back.out(1.7)"
-    }, "-=0.6");
-
-    gsap.to(containerRef.current, {
-      scale: 1.1,
-      scrollTrigger: {
-        trigger: containerRef.current,
-        start: "top center",
-        end: "bottom top",
-        scrub: true,
-      },
-      ease: "power1.out",
-    });
-  }, { scope: containerRef });
 
   return (
     <>
-      <Toaster />
+      <Toaster position="top-center" />
       <div
-        className={`flex flex-col items-center overflow-hidden justify-center py-24 gap-y-8 sm:px-12 lg:px-24 min-h-[85vh] transition-colors duration-300 ${
-          isLightMode ? "bg-white" : "bg-gray-950"
+        className={`relative min-h-[92vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16 sm:py-24 overflow-hidden transition-colors duration-300 ${
+          isLightMode
+            ? "bg-gradient-to-b from-slate-50 via-white to-slate-50 bg-grid-pattern-light"
+            : "bg-gradient-to-b from-dark-bg via-[#0c0c16] to-dark-bg bg-grid-pattern"
         }`}
       >
-        <h1
-          className={`text-xl md:text-2xl text-center font-bold tracking-widest uppercase ${
-            isLightMode ? "text-blue-600" : "text-green-400"
-          }`}
-        >
-          Welcome, {userData ? userData.name : "Developer"}
-        </h1>
+        {/* 3D Background Layer */}
+        <HeroBackground3D isLightMode={isLightMode} />
 
-        <div ref={containerRef} className="h-fit w-full flex justify-center px-4 lg:px-0">
-          <h1
-            className={`${
-              isLightMode ? "text-gray-900" : "text-white"
-            } text-center font-extrabold max-w-5xl leading-tight text-4xl md:text-5xl lg:text-7xl`}
+        {/* Ambient Glow behind Hero */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[600px] h-[350px] sm:h-[600px] bg-accent-violet/15 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[250px] sm:w-[450px] h-[250px] sm:h-[450px] bg-accent-cyan/10 blur-[100px] rounded-full pointer-events-none" />
+
+        {/* Hero Content */}
+        <div className="relative max-w-5xl w-full mx-auto text-center space-y-6 sm:space-y-8 z-10">
+
+          {/* Tech Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-mono backdrop-blur-md"
+            style={{
+              borderColor: isLightMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.4)",
+              backgroundColor: isLightMode ? "rgba(255, 255, 255, 0.8)" : "rgba(26, 26, 36, 0.6)",
+              color: isLightMode ? "#7C3AED" : "#A78BFA",
+            }}
           >
-            {splittedText.map((char, idx) => (
-              <span
-                key={idx}
-                className={`inline-block ${idx < halfValue ? "firstHalf" : "secondHalf"}`}
-              >
-                {char === " " ? "\u00A0" : char}
-              </span>
-            ))}
-          </h1>
-        </div>
+            <Sparkles className="w-3.5 h-3.5 animate-pulse text-accent-violet" />
+            <span>Next-Gen Collaborative IDE & Voice</span>
+          </motion.div>
 
-        <p
-          className={`text-base md:text-xl text-center font-medium max-w-2xl mt-2 mb-6 ${
-            isLightMode ? "text-gray-500" : "text-gray-400"
-          }`}
-        >
-          Launch directly into your workspace. Select a tool to begin.
-        </p>
+          {/* Main Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className={`font-mono font-extrabold text-3xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.15] tracking-tight ${
+              isLightMode ? "text-gray-950" : "text-white"
+            }`}
+          >
+            Code together.{" "}
+            <br className="hidden sm:inline" />
+            <span className="bg-gradient-to-r from-accent-violet via-purple-400 to-accent-cyan bg-clip-text text-transparent">
+              Talk together.
+            </span>
+          </motion.h1>
 
-        <div className="flex flex-wrap justify-center items-center gap-4 lg:gap-6 w-full max-w-6xl px-4 z-10">
-          {toolsData.map((tool, index) => (
+          {/* Subheadline */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className={`text-sm sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-sans ${
+              isLightMode ? "text-gray-600" : "text-gray-400"
+            }`}
+          >
+            Ultra-low latency pair programming with integrated WebRTC voice & video, interactive visualizer, and instant AI reviews in a single browser window.
+          </motion.p>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2"
+          >
             <button
-              key={index}
-              onClick={() => handleNavigation(tool.path)}
-              className={`action-btn flex items-center text-left gap-4 px-6 rounded-[2rem] text-white transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 active:scale-95 w-[300px] h-[88px] ${tool.themeClass}`}
+              onClick={() => handleNavigation("/RoomPage")}
+              className="w-full sm:w-auto group relative px-7 py-3.5 text-base font-semibold font-mono rounded-tech-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] bg-accent-violet text-white hover:bg-accent-violet/90 shadow-lg shadow-accent-violet/30 flex items-center justify-center gap-2"
             >
-              <div className="flex-shrink-0 bg-white/10 p-2.5 rounded-full">
-                {tool.icon}
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-lg leading-tight tracking-wide">{tool.title}</span>
-                <span className="text-sm font-medium text-white/80 mt-0.5">{tool.subtitle}</span>
-              </div>
+              <span>Start Live Session</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
-          ))}
+
+            <button
+              onClick={() => {
+                const demoSection = document.getElementById("demo-visual");
+                demoSection?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className={`w-full sm:w-auto px-7 py-3.5 text-base font-semibold font-mono rounded-tech-lg border backdrop-blur-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                isLightMode
+                  ? "border-gray-300 bg-white/70 text-gray-700 hover:border-accent-violet hover:text-accent-violet"
+                  : "border-dark-border bg-dark-surface/60 text-gray-300 hover:border-accent-violet hover:text-white"
+              }`}
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Watch Interactive Demo</span>
+            </button>
+          </motion.div>
+
+          {/* Floating Stats Pill */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="flex items-center justify-center gap-6 pt-2 text-xs font-mono text-gray-500"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              &lt;5ms sync latency
+            </span>
+            <span className="hidden sm:inline text-gray-400">•</span>
+            <span className="hidden sm:flex items-center gap-1.5">
+              <span>Zero-install WebRTC</span>
+            </span>
+            <span className="text-gray-400">•</span>
+            <span>15+ Languages</span>
+          </motion.div>
         </div>
+
+        {/* Live Mock Code Editor Window with Interactive HUD */}
+        <motion.div
+          initial={{ opacity: 0, y: 35 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.45 }}
+          className="relative max-w-4xl w-full mx-auto mt-12 sm:mt-16 z-10"
+        >
+          <div
+            className={`relative rounded-tech-lg overflow-hidden border backdrop-blur-md transition-all ${
+              isLightMode
+                ? "bg-white/90 border-gray-300 shadow-2xl shadow-purple-500/5"
+                : "bg-dark-surface/90 border-dark-border shadow-2xl shadow-black/80"
+            }`}
+          >
+            {/* Window Top Bar */}
+            <div
+              className={`flex items-center justify-between px-4 py-2.5 border-b select-none ${
+                isLightMode ? "bg-gray-100/90 border-gray-200" : "bg-dark-bg/80 border-dark-border"
+              }`}
+            >
+              {/* Traffic Lights */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-black/10" />
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-black/10" />
+                <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-black/10" />
+              </div>
+
+              {/* Tab Title */}
+              <div className="flex items-center gap-2 px-3 py-1 rounded bg-accent-violet/10 text-accent-violet font-mono text-xs font-medium">
+                <Terminal className="w-3.5 h-3.5" />
+                <span>{activeTab}</span>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-500">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="hidden sm:inline">LIVE SYNC</span>
+              </div>
+            </div>
+
+            {/* Code Body */}
+            <div className={`font-mono text-xs sm:text-sm p-4 sm:p-6 overflow-x-auto ${isLightMode ? "bg-slate-50/50" : "bg-[#0d0d15]/80"}`}>
+              {codeLines.map((line) => (
+                <div key={line.id} className="flex items-center gap-3 sm:gap-4 leading-6">
+                  <span className={`select-none w-5 text-right text-xs ${isLightMode ? "text-gray-400" : "text-gray-600"}`}>
+                    {line.id}
+                  </span>
+                  <pre className="flex-1">
+                    <span style={{ paddingLeft: `${(line.indent || 0) * 0.75}rem` }} className={line.color || (isLightMode ? "text-gray-800" : "text-gray-300")}>
+                      {line.code}
+                      {line.id === 4 && (
+                        <span className="inline-block w-0.5 h-4 bg-accent-violet ml-1 animate-blink align-middle" />
+                      )}
+                      {line.id === 5 && (
+                        <motion.span
+                          animate={{ opacity: [1, 0, 1] }}
+                          transition={{ duration: 1.2, repeat: Infinity }}
+                          className="inline-block w-0.5 h-4 bg-emerald-400 ml-1 align-middle"
+                        />
+                      )}
+                    </span>
+                  </pre>
+                </div>
+              ))}
+            </div>
+
+            {/* Floating Live Call Widget inside window */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className={`absolute top-12 right-3 sm:right-6 rounded-tech-lg border p-2 sm:p-3 backdrop-blur-xl shadow-xl ${
+                isLightMode
+                  ? "bg-white/95 border-gray-300 text-gray-800 shadow-purple-500/10"
+                  : "bg-dark-surface/95 border-dark-border text-white shadow-black/60"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="flex -space-x-2">
+                  <div className="w-7 h-7 rounded-full bg-accent-violet flex items-center justify-center text-white text-xs font-bold ring-2 ring-white dark:ring-dark-bg">
+                    A
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold ring-2 ring-white dark:ring-dark-bg">
+                    S
+                  </div>
+                </div>
+                <div className="hidden sm:block text-left font-mono">
+                  <div className="text-[11px] font-semibold leading-none">Mohd Arish & Salman</div>
+                  <div className="text-[9px] text-emerald-400 flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Speaking
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className={`p-1 rounded ${isLightMode ? "bg-gray-100" : "bg-dark-bg"}`}>
+                    <Mic className="w-3.5 h-3.5 text-accent-violet" />
+                  </span>
+                  <span className={`p-1 rounded ${isLightMode ? "bg-gray-100" : "bg-dark-bg"}`}>
+                    <Video className="w-3.5 h-3.5 text-accent-cyan" />
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
     </>
   );

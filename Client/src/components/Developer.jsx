@@ -1,120 +1,225 @@
+import React from "react";
+import { Github, Linkedin, Instagram, ArrowLeft, Code, Sparkles, Terminal } from "lucide-react";
 
-import React, { useEffect } from "react";
-import { FaGithub, FaLinkedin, FaInstagram } from "react-icons/fa";
-import aditya from '../assets/aditya.jpg';
-import harsh from '../assets/harsh.png';
-import { useAppContext } from "../Context/AppContext";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const developers = [
   {
-    name: "Aditya Kumar",
-    role: "Full-Stack Developer",
-    image: aditya,
-    github: "https://github.com/aditya-kumar-patraan1",
-    linkedin: "https://www.linkedin.com/in/aditya-kumar--?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
-    instagram: "https://www.instagram.com/adityakr_rajput/#",
-    about: "Passionate about Data Structures & Algorithms, ranked in the top 3% globally on LeetCode with a 1900+ rating. Skilled Full Stack Web Developer.",
+    name: "Mohd Arish Khan",
+    role: "Full-Stack Engineer & DSA Lead",
+    // image: Mohd Arish Khan,
+    badge: "BACKEND & DSA",
+    github: "https://github.com/MohdArishkhan",
+    linkedin: "https://www.linkedin.com/in/mohd-arish-khan",
+    instagram: "https://www.instagram.com/mohdarishkhan/",
+    about: "Expert in distributed systems, real-time WebSocket architecture, and WebRTC streaming. Specializes in building scalable collaborative platforms with advanced DSA visualizations.",
     contributions: [
-      "Mainly works on Back-end",
-      "Built real-time code editor",
-      "Worked on login/auth system",
-      "Built CodeDoddle Meeting",
-      "Built Code Reviewer",
-      "Built ChatBot",
-      "Handled Sockets and WebRTC",
-      "Built WorkSpace",
-      "Handled Authentication (with OTP functionalities)",
+      "Engineered real-time collaborative state synchronization",
+      "Built WebRTC low-latency audio/video mesh",
+      "Architected Code Reviewer & Gemini AI integration",
+      "Implemented secure JWT & OTP authentication system",
+      "Developed workspace cloud persistence layer",
     ],
-    bgColor : "#CCF381"
   },
   {
-    name: "Harsh Gupta",
-    role: "Full Stack Developer",
-    image: harsh,
-    github: "https://github.com/harsh0655",
-    linkedin: "https://www.linkedin.com/in/harsh-gupta-61b01a2a4?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
-    instagram: "https://instagram.com/yourhandle",
-    about: "Passionate about building scalable web apps and collaborative tools.",
+    name: "Salman Khan",
+    role: "Frontend Architect & UI/UX",
+    // image: Salman Khan,
+    badge: "FRONTEND & DESIGN",
+    // github: "https://github.com/salmankhan",
+    // linkedin: "https://www.linkedin.com/in/salman-khan",
+    // instagram: "https://www.instagram.com/salmankhan/",
+    about: "Passionate about creating modern, ultra-responsive web experiences, design systems, and micro-interactions for developer tools.",
     contributions: [
-      "Led front-end design and architecture.",
-  "Built responsive landing page and navbar.",
-  "Created animated, interactive FAQ section.",
-  "Integrated GSAP for smooth UI animations.",
-  "Designed all key pages with consistent UI.",
-  "Built animated user guide with Framer Motion.",
-  "Managed CodeDoodle’s social media presence.",
-  "Created Figma prototypes for UI planning.",
-  "Designed real-time video chat interface.",
-  "Ensured full responsiveness across devices.",
-  "Developed UI for chat and code history logs."
+      "Led design architecture and Tailwind design system",
+      "Engineered responsive multiplayer IDE interface",
+      "Crafted smooth GSAP & Framer Motion interactions",
+      "Built interactive visualizer and user walkthrough",
+      "Engineered desktop-grade chat and file management",
     ],
-    bgColor : "rgb(222,170,255)"
   },
-  
 ];
 
-const Developer = ({isLightMode}) => {
+const Developer = ({ isLightMode }) => {
+  const navigate = useNavigate();
 
-  const {userData} = useAppContext();
-  const Navigate = useNavigate();
-
-  useEffect(()=>{
-    // console.log("But in Developer page");
-    // console.log(userData);
-  },[userData]);
-  
   return (
-    <div className={`${isLightMode?"bg-[#f5f5f5]":"bg-black"} py-9 lg:py-20 px-7 lg:px-10 `}>
-      <h1 className={`text-3xl lg:text-5xl font-extrabold text-center ${isLightMode ? "text-gray-800" : "text-white"} mb-16 lg:mb-12`}>
-        Meet the Developers
-      </h1>
+    <div
+      className={`min-h-screen py-12 sm:py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden ${
+        isLightMode
+          ? "bg-slate-50 bg-grid-pattern-light text-gray-900"
+          : "bg-dark-bg bg-grid-pattern text-white"
+      }`}
+    >
+      {/* Top Ambient Glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-accent-violet/10 blur-[140px] rounded-full pointer-events-none" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-7xl mx-auto">
-        {developers.map((dev, index) => (
-          <div
-            key={index}
-            className={`bg-[${dev.bgColor}] border-2 ${isLightMode?"shadow-slate-200":"border-gray-100"} rounded-3xl p-8 flex flex-col items-center text-center hover:scale-105 duration-300`}
-            >
-            <img
-              src={dev.image}
-              alt={dev.name}
-              className={`lg:w-40 h-24 lg:h-40 object-cover rounded-full border-2 lg:border-4 ${isLightMode?"border-gray-200":"border-green-600"} shadow-md mb-4`}
-            />
-            <h2 className={`text-1xl lg:text-2xl font-bold ${isLightMode?"text-gray-700":"text-green-500"}`}>{dev.name}</h2>
-            <p className="text-gray-500 text-sm">{dev.role}</p>
+      <div className="max-w-6xl mx-auto relative z-10">
+        {/* Back Button */}
+        <div className="flex justify-start mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-tech font-mono text-xs font-semibold border backdrop-blur-md transition-all duration-200 ${
+              isLightMode
+                ? "bg-white border-gray-200 text-gray-700 hover:border-accent-violet hover:text-accent-violet"
+                : "bg-dark-surface border-dark-border text-gray-300 hover:border-accent-violet hover:text-white"
+            }`}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+        </div>
 
-            <div className="flex space-x-4 mt-4 text-xl text-gray-600">
-              <button onClick={() => window.open(dev.github, "_blank")}  type="button">
-                <FaGithub className={`${isLightMode?"hover:text-gray-800":"hover:text-white"}`} />
-              </button>
-              <button onClick={() => window.open(dev.linkedin, "_blank")}  type="button">
-                <FaLinkedin className="hover:text-blue-600" />
-              </button>
-              <button onClick={() => window.open(dev.instagram, "_blank")} type="button">
-                <FaInstagram className="hover:text-pink-500" />
-              </button>
-            </div>
-
-            <div className="mt-6 text-left w-full">
-              <h3 className={`text-sm lg:text-xl font-semibold ${isLightMode?"text-gray-800":"text-green-300"} mb-2`}>
-                About
-              </h3>
-              <p className={`${isLightMode?"text-gray-800":"text-green-300"} text-sm`}>{dev.about}</p>
-
-              <h3 className={`text-sm lg:text-xl ${isLightMode?"text-gray-800":"text-green-300"} font-semibold text-gray-800 mt-4 mb-2`}>
-                Contributions
-              </h3>
-              <ul className={`list-disc pl-3 lg:pl-5 ${isLightMode?"text-gray-800":"text-green-100"} text-sm lg:text-sm-1`}>
-                {dev.contributions.map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
-
-              
-            </div>
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+          <div className="inline-flex items-center gap-2 font-mono text-xs tracking-widest uppercase text-accent-violet">
+            <Terminal className="w-3.5 h-3.5" />
+            <span>Core Engineers</span>
           </div>
-        ))}
+          <h1
+            className={`font-mono text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight ${
+              isLightMode ? "text-gray-900" : "text-white"
+            }`}
+          >
+            Meet the Builders
+          </h1>
+          <p
+            className={`text-sm sm:text-base font-sans ${
+              isLightMode ? "text-gray-600" : "text-gray-400"
+            }`}
+          >
+            The engineers behind the architecture, real-time protocols, and interactive experience of TraceSync.
+          </p>
+        </div>
+
+        {/* Developers Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {developers.map((dev, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 25 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.15 }}
+              className={`p-6 sm:p-8 rounded-tech-lg border backdrop-blur-sm transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 ${
+                isLightMode
+                  ? "bg-white border-gray-200 shadow-xl shadow-purple-500/5 hover:border-accent-violet"
+                  : "bg-dark-surface/80 border-dark-border shadow-2xl shadow-black/60 hover:border-accent-violet/60"
+              }`}
+            >
+              <div>
+                {/* Profile Header */}
+                <div className="flex items-center gap-4 sm:gap-5 mb-6">
+                  <img
+                    src={dev.image}
+                    alt={dev.name}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-accent-violet/40 shadow-md"
+                  />
+                  <div>
+                    <span className="font-mono text-[10px] tracking-wider px-2 py-0.5 rounded border text-accent-violet border-accent-violet/30 bg-accent-violet/10 font-semibold">
+                      {dev.badge}
+                    </span>
+                    <h2
+                      className={`font-mono text-xl sm:text-2xl font-bold mt-1.5 ${
+                        isLightMode ? "text-gray-900" : "text-white"
+                      }`}
+                    >
+                      {dev.name}
+                    </h2>
+                    <p
+                      className={`text-xs font-mono ${
+                        isLightMode ? "text-gray-500" : "text-gray-400"
+                      }`}
+                    >
+                      {dev.role}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bio */}
+                <p
+                  className={`text-xs sm:text-sm leading-relaxed mb-6 ${
+                    isLightMode ? "text-gray-600" : "text-gray-300"
+                  }`}
+                >
+                  {dev.about}
+                </p>
+
+                {/* Contributions */}
+                <div className="space-y-2 mb-6">
+                  <h3
+                    className={`font-mono text-xs font-bold tracking-wider uppercase ${
+                      isLightMode ? "text-gray-700" : "text-gray-300"
+                    }`}
+                  >
+                    Key Architectural Contributions:
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {dev.contributions.map((item, idx) => (
+                      <li
+                        key={idx}
+                        className={`font-mono text-xs flex items-start gap-2 ${
+                          isLightMode ? "text-gray-600" : "text-gray-400"
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-violet mt-1.5 flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Social Links Bar */}
+              <div
+                className={`pt-4 border-t flex items-center gap-3 ${
+                  isLightMode ? "border-gray-100" : "border-dark-border"
+                }`}
+              >
+                <a
+                  href={dev.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-tech border transition-all ${
+                    isLightMode
+                      ? "border-gray-200 text-gray-700 hover:border-accent-violet hover:text-accent-violet"
+                      : "border-dark-border text-gray-300 hover:border-accent-violet hover:text-white"
+                  }`}
+                  aria-label="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+                <a
+                  href={dev.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-tech border transition-all ${
+                    isLightMode
+                      ? "border-gray-200 text-gray-700 hover:border-accent-violet hover:text-accent-violet"
+                      : "border-dark-border text-gray-300 hover:border-accent-violet hover:text-white"
+                  }`}
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+                <a
+                  href={dev.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-tech border transition-all ${
+                    isLightMode
+                      ? "border-gray-200 text-gray-700 hover:border-accent-violet hover:text-accent-violet"
+                      : "border-dark-border text-gray-300 hover:border-accent-violet hover:text-white"
+                  }`}
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </div>
   );

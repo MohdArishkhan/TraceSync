@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
+const { createClient } = require("@supabase/supabase-js"); 
 const myRouter = require("./Routings/authRoutes");
 const app = express();
 const connectDB = require("./Config/mongodb");
@@ -14,6 +15,8 @@ const router6 = require("./Routings/ThemeRoutes");
 const Router7 = require("./Routings/ContactRoutes");
 const codeExecutionRoutes = require("./Routings/codeExecutionRoutes");
 const artificialRoutes = require("./Routings/ArtificialRoutes");
+const documentRoutes = require("./Routings/documentRoutes");
+const roomRoutes = require("./Routings/roomRoutes");
 const compression = require("compression");
 require("dotenv").config();
 
@@ -22,16 +25,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:5173",
-  credentials: true                 
+  credentials: true                
 }));
 
+// Initialize Supabase Client for backend operations
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-
-// res.cookie('token', token, {
-  // httpOnly: true,
-  // secure: process.env.NODE_ENV === 'production',
-  // sameSite: 'none',  // to allow cross-site cookies on HTTPS
-// });
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -49,6 +50,8 @@ app.use("/api/chats/",router5);
 app.use("/api/theme",router6);
 app.use("/api/feedback",Router7);
 app.use("/api/execute", codeExecutionRoutes);
+app.use("/api/documents", documentRoutes);
+app.use("/api/rooms", roomRoutes);
 app.use(artificialRoutes);
 connectDB();
 
@@ -56,9 +59,9 @@ app.get("/",(req,res)=>{
   res.send("This is my Home Page");
 })
 
+const saveTimeouts = new Map();
 const emailToSocketIdMap = new Map();
 const socketidToEmailMap = new Map();
-
 
 const dataMappings = {};
 
@@ -73,14 +76,52 @@ const helper = (roomid) => {
 };
 
 io.on("connection", (socket) => {
-  // console.log(`User connected ${socket.id}`);
+  
+  // ----------------------------------------------------
+  // DEBOUNCED DATABASE SAVE LOGIC
+  // ----------------------------------------------------
+  socket.on("trigger-db-save", ({ roomid, codeContent }) => {
+    
+    // 1. If a save is already counting down for this room, cancel it
+    if (saveTimeouts.has(roomid)) {
+      clearTimeout(saveTimeouts.get(roomid));
+    }
+
+    // 2. Start a fresh 2-second countdown
+    const timer = setTimeout(async () => {
+      try {
+        console.log(`[AutoSave] Saving room ${roomid} to Supabase...`);
+        
+        // Execute the actual Supabase update query
+        const { error } = await supabase
+          .from('documents')
+          .update({ 
+             code_content: codeContent, 
+             updated_at: new Date().toISOString() 
+           })
+          .eq('id', roomid); // Assumes roomid perfectly matches the document UUID
+          
+        if (error) throw error;
+
+        console.log(`[AutoSave] Room ${roomid} saved successfully!`);
+      } catch (error) {
+        console.error(`[AutoSave Error]:`, error.message);
+      } finally {
+        // Clear the timer from the map once the save is complete
+        saveTimeouts.delete(roomid); 
+      }
+    }, 2000); 
+
+    // Store the active timer
+    saveTimeouts.set(roomid, timer);
+  });
+  // ----------------------------------------------------
 
   socket.on("join", ({ roomid, username }) => {
     dataMappings[socket.id] = username;
     socket.join(roomid);
 
     const allClients = helper(roomid);
-    // console.log(allClients);
 
     io.to(roomid).emit("joined", {
       clients: allClients,
@@ -107,12 +148,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("peer:nego:needed", ({ to, offer }) => {
-    // console.log("peer:nego:needed", offer);
     io.to(to).emit("peer:nego:needed", { from: socket.id, offer });
   });
 
   socket.on("peer:nego:done", ({ to, ans }) => {
-    // console.log("peer:nego:done", ans);
     io.to(to).emit("peer:nego:final", { from: socket.id, ans });
   });
 
@@ -127,7 +166,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("messages:sent", ({ to, currMsg }) => {
-    // console.log(currMsg);
     socket.broadcast.emit("messages:sent", { from: socket.id, currMsg });
   });
   
@@ -136,8 +174,6 @@ io.on("connection", (socket) => {
   })
 
   socket.on("user-leave", () => {
-    // console.log("disconnecting activated...");
-
     const rooms = [...socket.rooms];
 
     if (dataMappings[socket.id]) {
@@ -153,16 +189,16 @@ io.on("connection", (socket) => {
     socket.leave();
   });
 
-  socket.on("code-change", ({ username,roomid, code }) => {
-    // console.log("Code-change activated");
-    if (roomid && code !== undefined) {
-      socket.to(roomid).emit("code-changed", {whoChanged:username,ChangerSocketId:socket.id,code });
-      socket.to(roomid).emit("show-who-changed",{whoChanged:username});
+  socket.on("yjs-update", ({ roomid, username, update }) => {
+    if (roomid && update) {
+      // Broadcast the binary array to everyone else in the room
+      socket.to(roomid).emit("yjs-update", { update, username });
+      // Tell UI someone is typing
+      socket.to(roomid).emit("show-who-changed", { whoChanged: username });
     }
   });
 
   socket.on("disconnect", () => {
-    // console.log(`User disconnected ${socket.id}`);
     delete dataMappings[socket.id];
   });
 
@@ -176,9 +212,5 @@ app.get("/homePage", (req, res) => {
 });
 
 server.listen(process.env.PORT || 3000, () => {
-  // console.log("Server is running...");
+  console.log("Server is running...");
 });
-
-// app.listen(process.env.PORT, (req, res) => {
-  // console.log("App is running...");
-// });

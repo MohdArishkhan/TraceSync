@@ -1,10 +1,11 @@
-import { React, useContext } from "react";
-import { createContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
-import { useEffect } from "react";
+import { onAuthStateChange, supabase } from "../lib/supabase";
+import { ensurePersonalProject } from "../lib/workspace";
 const AppContext = createContext();
-//added toast
-import {toast} from "react-hot-toast";
+
+// TEMPORARY DEVELOPMENT BYPASS: set to false to require Supabase login again.
+const TEMPORARY_AUTH_BYPASS = true;
 
 export const useAppContext = () => useContext(AppContext);
 
@@ -12,37 +13,77 @@ export const AppProvider = (props) => {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const [isLoggedIn, setisLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const getAuthState = async () => {
-    // BYPASS - Always logged in
+  const clearUser = () => {
+    if (TEMPORARY_AUTH_BYPASS) {
+      setisLoggedIn(true);
+      setUserData({
+        id: "demo-user",
+        name: "Demo User",
+        email: "demo@example.com",
+        isAccountVerified: true,
+        isLightMode: false,
+        allFiles: [],
+        allChats: [],
+        allRecycleBinFiles: [],
+        workspaceId: null,
+        projectId: null,
+        project: null,
+      });
+      return;
+    }
+
+    setisLoggedIn(false);
+    setUserData(null);
+  };
+
+  const loadProfile = async (user) => {
+    if (!user) {
+      clearUser();
+      return;
+    }
+
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("id, display_name, avatar_path, theme, created_at, updated_at")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    const personalProject = await ensurePersonalProject();
+
     setisLoggedIn(true);
     setUserData({
-      name: "Test User",
-      email: "test@example.com",
-      isAccountVerified: true,
+      id: user.id,
+      workspaceId: personalProject?.workspace.id || null,
+      projectId: personalProject?.project.id || null,
+      project: personalProject?.project || null,
+      name: profile?.display_name || user.user_metadata?.display_name || user.email?.split("@")[0] || "User",
+      email: user.email || "",
+      isAccountVerified: Boolean(user.email_confirmed_at),
+      isLightMode: profile?.theme === "light",
+      avatarPath: profile?.avatar_path || null,
       allFiles: [],
-      isLightMode: false,
       allChats: [],
       allRecycleBinFiles: []
     });
+  };
 
-    // try{
-    //     // console.log("Checking authentication state...");
-    //     const response = await axios.get(`${BACKEND_URL}/api/auth/isAuthenticated`,{
-    //         withCredentials: true
-    //     });
-    //     if(response.data.success === true){
-    //         setisLoggedIn(true);
-    //         getUserData();
-    //     }
-    //     else{
-    //         setisLoggedIn(false);
-    //     }
-    // }catch(e){
-    //     // console.log("Error fetching authentication state:", e);
-    //     setisLoggedIn(false);
-    // }
-  }
+  const getAuthState = async () => {
+    setAuthLoading(true);
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      await loadProfile(session?.user ?? null);
+    } catch (error) {
+      console.error("Error fetching Supabase auth state:", error.message);
+      clearUser();
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const getUserData = async () => {
     try {
@@ -59,7 +100,7 @@ export const AppProvider = (props) => {
       } else {
         setUserData(false);
       }
-    } catch (e) {
+    } catch {
       // console.log("Error fetching user data:", e);
     }
   };
@@ -80,18 +121,32 @@ export const AppProvider = (props) => {
         // console.log("Error adding file to recycle bin:", response.data.message);
       // }
       return response;
-    }catch(e){
+    }catch{
       // console.log("Error adding file to recycle bin:", e);
     }
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     getAuthState();
-  },[])
+
+    const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
+      try {
+        await loadProfile(session?.user ?? null);
+      } catch (error) {
+        console.error("Error loading Supabase profile:", error.message);
+        clearUser();
+      } finally {
+        setAuthLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const value = {
     BACKEND_URL,
     isLoggedIn,
+    authLoading,
     setisLoggedIn,
     userData,
     setUserData,

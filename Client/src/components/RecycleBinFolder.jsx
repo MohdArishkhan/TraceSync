@@ -1,34 +1,46 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppContext } from "../Context/AppContext";
 import { Toaster, toast } from "react-hot-toast";
 import { FaCopy, FaFile } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import { motion } from "framer-motion";
 import { IoMdSettings } from "react-icons/io";
-import axios from "axios";
+import { listRecycleBin, permanentlyDeleteRecycleItem } from "../lib/documents";
+
+const MotionDiv = motion.div;
 
 function RecycleBinFolder() {
-  const { userData, getUserData } = useAppContext();
+  const { userData } = useAppContext();
+  const [recycleItems, setRecycleItems] = useState([]);
 
-  const [isCodeOpen, setisCodeOpen] = useState(false);
   const [codeIndex, setCodeIndex] = useState(null);
   const [code, setCode] = useState("");
   const [file, setFile] = useState("");
   const [optionVisibility, setoptionVisibility] = useState(false);
   const [isDeleteOpen, setisDeleteOpen] = useState(false);
   const [isallDeleteOpen, setisallDeleteOpen] = useState(false);
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const [confirm, setConfirm] = useState("");
   const [individualFileText,setindividualFileText] = useState("");
   const [OPP,setOPP] = useState(false);
 
+  const refreshRecycleBin = async () => {
+    if (!userData?.workspaceId) return;
+    try {
+      const result = await listRecycleBin(userData.workspaceId);
+      setRecycleItems(result.items || []);
+    } catch (error) {
+      toast.error(error.message || "Unable to load recycle bin");
+    }
+  };
+
+  useEffect(() => { refreshRecycleBin(); }, [userData?.workspaceId]);
+
   const handleOpenCode = (currIndex, itemFile) => {
-    setisCodeOpen(true);
-    setCodeIndex(itemFile?._id);
+    setCodeIndex(itemFile?.id);
     // console.log(itemFile);
     setOPP(true);
-    setFile(itemFile?.fileName);
-    setCode(itemFile?.fileContent);
+    setFile(itemFile?.documents?.name);
+    setCode(itemFile?.documents?.code_content);
   };
 
   // console.log(file);
@@ -40,7 +52,6 @@ function RecycleBinFolder() {
   };
 
   const handleCloseCode = () => {
-    setisCodeOpen(false);
     setCodeIndex(null);
     setCode(null);
     setFile("");
@@ -50,8 +61,8 @@ function RecycleBinFolder() {
   const handleDeleteVisibility = (item) => {
     setisDeleteOpen(true);
     setindividualFileText("");
-    setFile(item?.fileName);
-    setCodeIndex(item?._id);
+    setFile(item?.documents?.name);
+    setCodeIndex(item?.id);
   };
 
   const handleDeleteCloseVisibility = () => {
@@ -63,14 +74,6 @@ function RecycleBinFolder() {
 
   // console.log(OPP);
 
-  const sendDeleteAllCallToMongo = async () => {
-    const res = await axios.delete(
-      `${BACKEND_URL}/api/file/deleteAllRecycleBinFiles`,
-      { withCredentials: true }
-    );
-    return res.data;
-  };
-
   const handleDeleteAllFiles = async () => {
     if (confirm.trim() === "" || confirm.trim().toLowerCase() !== "delete all files") {
       toast.error(`Type 'delete all files'`);
@@ -78,15 +81,11 @@ function RecycleBinFolder() {
     }
 
     try {
-      const res = await sendDeleteAllCallToMongo();
-      if (res.status === 1) {
-        toast.success(`All Files Deleted`);
-        getUserData();
-        closingAllFiles();
-      } else {
-        throw new Error();
-      }
-    } catch (e) {
+      await Promise.all(recycleItems.map((item) => permanentlyDeleteRecycleItem(item.id)));
+      toast.success(`All Files Deleted`);
+      await refreshRecycleBin();
+      closingAllFiles();
+    } catch {
       toast.error(`Error occurred while deleting files`);
     }
   };
@@ -97,14 +96,6 @@ function RecycleBinFolder() {
     setoptionVisibility(false);
   };
 
-  const sendingFileIndexToMongo = async () => {
-    // console.log(codeIndex);
-    const result = await axios.delete(`${BACKEND_URL}/api/file/deleteIndividualRecycleBinFile/${codeIndex}`,{
-      withCredentials : true
-    });
-    return result.data;
-  }
-
   const handleDeletingIndividualFile = async () => {
     
     if(individualFileText.trim()=="" || individualFileText.trim().toLowerCase()!=`delete ${file.toLowerCase()}`){
@@ -113,16 +104,11 @@ function RecycleBinFolder() {
     }
     
     try{
-      const res = await sendingFileIndexToMongo();
-      if(res.status === 1){
-        toast.success(`File deleted Successfully`);
-        getUserData();
-      }
-      else{
-        throw new Error();
-      }
+      await permanentlyDeleteRecycleItem(codeIndex);
+      toast.success(`File deleted Successfully`);
+      await refreshRecycleBin();
     }
-    catch(e){
+    catch{
       toast.error(`File not deleted`);
     }
   }
@@ -185,7 +171,7 @@ function RecycleBinFolder() {
 
         {/* Individual Delete Modal */}
         {isDeleteOpen && (
-          <motion.div 
+          <MotionDiv
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           >
@@ -206,7 +192,7 @@ function RecycleBinFolder() {
                 <button onClick={handleDeletingIndividualFile} className="flex-1 bg-blue-500 py-2 text-white rounded-lg hover:bg-blue-600 active:scale-95">Confirm</button>
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
 
         {/* Header Section (Stays Fixed at Top) */}
@@ -226,9 +212,9 @@ function RecycleBinFolder() {
                 <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Strap Layout</button> */}
                 {/* <hr className="my-1" /> */}
                 <button 
-                  disabled={userData?.allRecycleBinFiles?.length === 0}
+                  disabled={recycleItems.length === 0}
                   onClick={() => setisallDeleteOpen(true)}
-                  className={`w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 ${userData?.allRecycleBinFiles?.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 ${recycleItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Delete all Files
                 </button>
@@ -240,14 +226,14 @@ function RecycleBinFolder() {
         {/* Files List Section (This part scrolls) */}
         <div className="flex-1 overflow-y-auto hide-scrollbar px-4 pb-10">
           <div className="max-w-5xl mx-auto flex flex-col gap-4">
-            {(!userData || userData?.allRecycleBinFiles?.length === 0) ? (
+            {recycleItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <p className="text-xl sm:text-3xl md:text-4xl font-bold text-white opacity-80">
                   Oops! Recycle Bin is Empty 🤭
                 </p>
               </div>
             ) : (
-              userData.allRecycleBinFiles.map((item, index) => (
+              recycleItems.map((item, index) => (
                 <div
                   key={index}
                   className="group w-full p-4 flex justify-between items-center rounded-xl bg-gray-950 border border-gray-800 hover:border-green-400 hover:bg-gray-900 transition-all duration-300 shadow-lg "
@@ -259,10 +245,10 @@ function RecycleBinFolder() {
                     <FaFile className="text-white text-xl sm:text-3xl shrink-0" />
                     <div className="min-w-0">
                       <p className="font-bold text-white text-base sm:text-xl truncate">
-                        {item.fileName}
+                        {item.documents?.name}
                       </p>
                       <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
-                        Removed by: {item.removedBy}
+                        Deleted: {new Date(item.deleted_at).toLocaleString()}
                       </p>
                     </div>
                   </div>

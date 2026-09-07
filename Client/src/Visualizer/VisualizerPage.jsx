@@ -3,8 +3,15 @@ import { MdPlayArrow, MdAutoAwesome, MdArrowBack, MdLock } from "react-icons/md"
 import { VscDebugAlt } from "react-icons/vsc";
 import EditorPanel from "./EditorPanel";
 import VisualPanel from "./VisualPanel";
+import * as Y from "yjs";
+import { IndexeddbPersistence } from "y-indexeddb";
+import { useAppContext } from "../Context/AppContext";
+import { createDocument } from "../lib/documents";
+import { useDocumentAutosave } from "../hooks/useDocumentAutosave";
+import { getPersonalProjectDocuments } from "../lib/workspace";
+import toast, { Toaster } from "react-hot-toast";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export const TRACE_ENDPOINTS = {
   python: "/api/execute/trace-py",
@@ -23,46 +30,57 @@ export const LANG_DEFAULTS = {
 const LANGS = ["python", "javascript", "cpp", "java"];
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  HELPER: Convert AI analysis → vizType string consumed by TracerWorker
+//  HELPER: legacy type string from analysis (fallback when no vizSpec)
 // ─────────────────────────────────────────────────────────────────────────────
 const getVisualType = (analysis) => {
-  if (!analysis) return null; 
+  if (!analysis) return null;
 
-  // 1. Highest Priority: The exact engine selected by the AI
+  // If vizSpec exists, use its engine directly
+  if (analysis.vizSpec?.primary?.engine) {
+    return analysis.vizSpec.primary.engine;
+  }
+
+  // Legacy fallback from selectedEngine string
   const engine = (analysis.selectedEngine || "").toUpperCase();
-  if (engine.includes("SEGMENT")) return "SEGMENT_TREE";
-  if (engine.includes("DEQUE")) return "DEQUE";
-  if (engine.includes("QUEUE")) return "QUEUE";
-  if (engine.includes("STACK")) return "STACK";
-  if (engine.includes("GRAPH")) return "GRAPH";
-  if (engine.includes("TREE")) return "TREE";
-  if (engine.includes("HEAP")) return "HEAP";
-  if (engine.includes("HASH")) return "HASH_MAP";
+  if (engine.includes("N_QUEENS") || engine.includes("NQUEENS") || engine.includes("QUEENS")) return "N_QUEENS";
+  if (engine.includes("SEGMENT"))  return "SEGMENT_TREE";
+  if (engine.includes("DEQUE"))    return "DEQUE";
+  if (engine.includes("QUEUE"))    return "QUEUE";
+  if (engine.includes("STACK"))    return "STACK";
+  if (engine.includes("PHYSICS") || engine.includes("GRAPH")) return "GRAPH";
+  if (engine.includes("SVG") || engine.includes("TREE")) return "TREE";
+  if (engine.includes("HEAP"))     return "HEAP";
+  if (engine.includes("HASH") || engine.includes("MAP")) return "HASH_MAP";
   if (engine.includes("GRID") || engine.includes("MATRIX")) return "MATRIX";
+  if (engine.includes("DSU"))      return "DSU";
 
-  // 2. Fallback: Guessing from Categories/Algorithms
-  const cat = (analysis.templateCategory ?? "").toUpperCase();
+  // From templateCategory / algorithm
+  const cat  = (analysis.templateCategory ?? "").toUpperCase();
   const algo = (analysis.algorithm ?? "").toUpperCase();
 
-  if (cat.includes("BST") || algo.includes("BST")) return "BST";
-  if (cat.includes("TREE") || algo.includes("TREE")) return "TREE";
-  if (cat.includes("TRIE") || algo.includes("TRIE")) return "TRIE";
-  if (cat.includes("HEAP") || algo.includes("HEAP")) return "HEAP";
-  if (cat.includes("LINKED") || algo.includes("LINKED")) return "LINKED_LIST";
-  if (cat.includes("GRAPH") || algo.includes("GRAPH")) return "GRAPH";
-  if (cat.includes("MATRIX") || algo.includes("MATRIX")) return "MATRIX";
-  if (cat.includes("STACK") || algo.includes("STACK")) return "STACK";
-  if (cat.includes("DEQUE") || algo.includes("DEQUE")) return "DEQUE";
-  if (cat.includes("QUEUE") || algo.includes("QUEUE")) return "QUEUE";
-  if (cat.includes("HASH") || algo.includes("HASH")) return "HASH_MAP";
+  if (cat.includes("BST")    || algo.includes("BST"))      return "BST";
+  if (cat.includes("N_QUEEN")|| algo.includes("N.QUEEN"))  return "N_QUEENS";
+  if (cat.includes("TRIE")   || algo.includes("TRIE"))     return "TRIE";
+  if (cat.includes("HEAP")   || algo.includes("HEAP"))     return "HEAP";
+  if (cat.includes("LINKED") || algo.includes("LINKED"))   return "LINKED_LIST";
+  if (cat.includes("GRAPH")  || algo.includes("GRAPH") ||
+      algo.includes("BFS")   || algo.includes("DIJKSTRA")) return "GRAPH";
+  if (cat.includes("MATRIX") || algo.includes("MATRIX") ||
+      cat.includes("GRID")   || algo.includes("ISLAND"))   return "MATRIX";
+  if (cat.includes("STACK")  || algo.includes("STACK"))    return "STACK";
+  if (cat.includes("DEQUE")  || algo.includes("DEQUE"))    return "DEQUE";
+  if (cat.includes("QUEUE")  || algo.includes("QUEUE"))    return "QUEUE";
+  if (cat.includes("HASH")   || algo.includes("HASH"))     return "HASH_MAP";
+  if (cat.includes("TREE")   || algo.includes("TREE"))     return "TREE";
 
-  return "ARRAY"; 
+  return "ARRAY";
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 const VisualizerPage = () => {
+  const { userData } = useAppContext();
   const [view, setView] = useState("editor");
   const [language, setLanguage] = useState("python");
   const [userCode, setUserCode] = useState(LANG_DEFAULTS["python"]);
@@ -73,6 +91,8 @@ const VisualizerPage = () => {
   const [vizLoading, setVizLoading] = useState(false);
   const [vizError, setVizError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [vizSpec, setVizSpec] = useState(null);
+  const [libraryMatch, setLibraryMatch] = useState(null); // ← pre-match metadata from library
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiError, setAiError] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -83,12 +103,127 @@ const VisualizerPage = () => {
   const [unlocking, setUnlocking] = useState(false);
 
   const fullTraceRef = useRef([]);
-  const workerRef = useRef(null);
-  const editorRef = useRef(null);
-  const monacoRef = useRef(null);
+  const workerRef    = useRef(null);
+  const editorRef    = useRef(null);
+  const monacoRef    = useRef(null);
   const decorationsRef = useRef([]);
+  const ydocRef = useRef(null);
+  const ytextRef = useRef(null);
+  const indexeddbProviderRef = useRef(null);
+  const hydratedCodeRef = useRef("");
+  const draftCreationRef = useRef(false);
+  const [cacheReady, setCacheReady] = useState(false);
+  const [documentId, setDocumentId] = useState(null);
+  const [documentRevision, setDocumentRevision] = useState(0);
+  const [saveError, setSaveError] = useState(null);
 
-  useEffect(() => { setCanVisualize(false); setRunState("idle"); setRunOutput(""); }, [userCode, language]);
+  const { status: saveStatus } = useDocumentAutosave({
+    documentId,
+    revision: documentRevision,
+    codeContent: userCode,
+    visualState: {
+      kind: "visualizer",
+      language,
+      selectedEngine: vizSpec?.primary?.engine || null,
+      vizSpec: vizSpec || null,
+    },
+    enabled: Boolean(documentId && userCode.trim()),
+  });
+
+  // Keep a local Yjs/IndexedDB copy so refreshes recover code before the
+  // network request completes. Database autosave remains the durable source.
+  useEffect(() => {
+    setCacheReady(false);
+    hydratedCodeRef.current = "";
+    ydocRef.current?.destroy();
+    indexeddbProviderRef.current?.destroy();
+
+    const ydoc = new Y.Doc();
+    const ytext = ydoc.getText("visualizer-code");
+    const cacheKey = `tracesync-visualizer-${userData?.id || "guest"}-${language}`;
+    const provider = new IndexeddbPersistence(cacheKey, ydoc);
+    ydocRef.current = ydoc;
+    ytextRef.current = ytext;
+    indexeddbProviderRef.current = provider;
+
+    provider.on("synced", () => {
+      const cachedCode = ytext.toString();
+      const resolvedCode = cachedCode || LANG_DEFAULTS[language];
+      if (!cachedCode) ytext.insert(0, resolvedCode);
+      hydratedCodeRef.current = resolvedCode;
+      setUserCode(resolvedCode);
+      setCacheReady(true);
+    });
+
+    return () => {
+      provider.destroy();
+      ydoc.destroy();
+      ydocRef.current = null;
+      ytextRef.current = null;
+    };
+  }, [language, userData?.id]);
+
+  useEffect(() => {
+    if (!cacheReady || !ytextRef.current || ytextRef.current.toString() === userCode) return;
+    ydocRef.current.transact(() => {
+      ytextRef.current.delete(0, ytextRef.current.length);
+      ytextRef.current.insert(0, userCode);
+    }, "react-editor");
+  }, [cacheReady, userCode]);
+
+  // Create one durable visualizer document after the user edits the hydrated
+  // code. This keeps the default example from creating rows on page load.
+  useEffect(() => {
+    if (!cacheReady || !userCode.trim() || userCode === hydratedCodeRef.current || documentId || draftCreationRef.current) return;
+    if (!userData?.projectId) return;
+
+    draftCreationRef.current = true;
+    const createVisualizerDocument = async () => {
+      try {
+        const documentPath = `visualizer-${language}.js`;
+        const existingDocuments = await getPersonalProjectDocuments(userData.projectId);
+        const existingDocument = existingDocuments.find((document) => document.path === documentPath);
+
+        if (existingDocument) {
+          setDocumentId(existingDocument.id);
+          setDocumentRevision(existingDocument.revision);
+          return;
+        }
+
+        const result = await createDocument({
+          projectId: userData.projectId,
+          path: documentPath,
+          name: documentPath,
+          kind: "mixed",
+          language,
+          codeContent: userCode,
+          visualState: { kind: "visualizer", language }
+        });
+        setDocumentId(result.document.id);
+        setDocumentRevision(result.document.revision);
+      } catch (error) {
+        draftCreationRef.current = false;
+        setSaveError(error);
+        toast.error(error.message || "Visualizer code could not be saved");
+      }
+    };
+
+    createVisualizerDocument();
+  }, [cacheReady, documentId, language, userCode, userData?.projectId]);
+
+  useEffect(() => {
+    if (saveError) toast.error(saveError.message || "Visualizer autosave failed");
+  }, [saveError]);
+
+  useEffect(() => () => {
+    indexeddbProviderRef.current?.destroy();
+    ydocRef.current?.destroy();
+  }, []);
+
+  useEffect(() => {
+    setCanVisualize(false); setRunState("idle"); setRunOutput("");
+    setLibraryMatch(null); setVizSpec(null); setAiAnalysis(null);
+  }, [userCode, language]);
   useEffect(() => { setUserCode(LANG_DEFAULTS[language]); }, [language]);
   useEffect(() => () => workerRef.current?.terminate(), []);
 
@@ -116,14 +251,8 @@ const VisualizerPage = () => {
   useEffect(() => {
     if (!editorRef.current || !monacoRef.current || view !== "visualizing") return;
     const newDecs = activeLine
-      ? [{
-          range: new monacoRef.current.Range(activeLine, 1, activeLine, 1),
-          options: {
-            isWholeLine: true,
-            className: "monaco-active-line",
-            glyphMarginClassName: "monaco-active-glyph",
-          },
-        }]
+      ? [{ range: new monacoRef.current.Range(activeLine, 1, activeLine, 1),
+           options: { isWholeLine: true, className: "monaco-active-line", glyphMarginClassName: "monaco-active-glyph" } }]
       : [];
     decorationsRef.current = editorRef.current.deltaDecorations(decorationsRef.current, newDecs);
     if (activeLine) editorRef.current.revealLineInCenter(activeLine, 0);
@@ -134,31 +263,67 @@ const VisualizerPage = () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(35000),
+      signal: AbortSignal.timeout(40000),
     });
     const text = await res.text();
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 150)}`);
     try { return JSON.parse(text); } catch { throw new Error(`Invalid JSON: ${text.slice(0, 100)}`); }
   };
 
-  const handleAnalyze = async () => {
-    if (!userCode.trim()) return;
-    setIsAnalyzing(true); setAiError(""); setAiAnalysis(null);
+  // ── Analyze: calls AI, stores both analysis display data and vizSpec ──
+  // Shared logic: run the analyze call and store results. Used both by the
+  // explicit "Analyze" button AND silently by "Visualize" when the user
+  // skipped Analyze — this is what lets the 47-problem library (and any
+  // future LLM-generated spec) actually get used even if Analyze was never
+  // clicked. Without this, vizSpec stays null forever and every problem
+  // falls back to pure heuristic rank-based routing, which is wrong for any
+  // non-recursive function called from a multi-test-case harness.
+  const runAnalysis = async (silent = false) => {
+    if (!userCode.trim()) return null;
+    if (!silent) { setIsAnalyzing(true); setAiError(""); }
     try {
-      setAiAnalysis(
-        await fetchPost(`${BACKEND_URL}/api/ai/analyze`, { code: userCode, language, runState, runOutput })
-      );
+      const result = await fetchPost(`${BACKEND_URL}/api/ai/analyze`, {
+        code: userCode, language, runState, runOutput
+      });
+      setAiAnalysis(result);
+      if (result.vizSpec) {
+        setVizSpec(result.vizSpec);
+        console.log('[TraceLab] vizSpec:', result.vizSpec.problemName, '→', result.vizSpec.primary?.engine);
+      }
+      if (result._libraryMatch) {
+        setLibraryMatch(result._libraryMatch);
+        console.log('[Library]', result._libraryMatch.problemId, result._libraryMatch.confidence);
+      } else {
+        setLibraryMatch(null);
+      }
+      return result;
     } catch (err) {
-      const msg = err.message ?? "";
-      if (msg.includes("GoogleGenerativeAI") || msg.includes("HTTP 500") || msg.includes("503"))
-        setAiError("The AI service is busy. Please try again in a moment! 🤖");
-      else if (msg.includes("Failed to fetch") || msg.includes("Network Error"))
-        setAiError("Network issue — check your connection or backend. 🔌");
-      else
-        setAiError("Oops! Something went wrong while analyzing. Please try again. ✨");
-    } finally { setIsAnalyzing(false); }
+      if (!silent) {
+        const msg = err.message ?? "";
+        if (msg.includes("HTTP 500") || msg.includes("503"))
+          setAiError("The AI service is busy. Please try again in a moment! 🤖");
+        else if (msg.includes("Failed to fetch") || msg.includes("Network Error"))
+          setAiError("Network issue — check your connection or backend. 🔌");
+        else
+          setAiError(`Analysis failed: ${msg.slice(0, 80)}`);
+      } else {
+        // Silent auto-analyze failure: don't surface an error banner, just
+        // fall through to heuristic routing like before — Visualize should
+        // never be blocked by a background analysis attempt failing.
+        console.warn('[TraceLab] Silent auto-analyze failed, falling back to heuristics:', err.message);
+      }
+      return null;
+    } finally {
+      if (!silent) setIsAnalyzing(false);
+    }
   };
 
+  const handleAnalyze = async () => {
+    setAiAnalysis(null); setVizSpec(null);
+    await runAnalysis(false);
+  };
+
+  // ── Run: execute code and get trace ──
   const handleRun = async () => {
     if (!userCode.trim()) return;
     setRunState("running"); setRunOutput(""); setCanVisualize(false);
@@ -190,10 +355,8 @@ const VisualizerPage = () => {
 
       const isError =
         stderr !== "" ||
-        outLower.includes("error:") ||
-        outLower.includes("syntaxerror") ||
-        outLower.includes("traceback") ||
-        outLower.includes("exception") ||
+        outLower.includes("error:") || outLower.includes("syntaxerror") ||
+        outLower.includes("traceback") || outLower.includes("exception") ||
         out.includes("JDoodle - Timeout") ||
         (r.exitCode != null && Number(r.exitCode) !== 0) ||
         (r.statusCode != null && Number(r.statusCode) !== 200);
@@ -218,14 +381,19 @@ const VisualizerPage = () => {
     }
   };
 
-  // ─── FIX: pass aiMetadata to worker so engines are selected correctly ───────
+  // ── Visualize: start TracerWorker with the optional AI context ──
   const handleVisualize = () => {
     if (!canVisualize || !userCode.trim()) return;
     setVizLoading(true); setVizError("");
     workerRef.current?.terminate();
 
-    // Derive the vizType from AI analysis (null = worker auto-detects from heap)
+    // Derive legacy type string (fallback for when vizSpec is absent)
     const vizType = getVisualType(aiAnalysis);
+
+    // Which problem types should suppress the recursion tree
+    const SUPPRESS_TREE_ENGINES = new Set([
+      'MATRIX', 'N_QUEENS', 'GRAPH', 'HEAP', 'SORTING', 'BINARY_SEARCH', 'SLIDING_WINDOW', 'DSU'
+    ]);
 
     try {
       workerRef.current = new Worker(
@@ -236,8 +404,23 @@ const VisualizerPage = () => {
       workerRef.current.postMessage({
         url: `${BACKEND_URL}${TRACE_ENDPOINTS[language]}`,
         payload: { code: userCode, language, customInput },
-        // ↓ This was completely missing before — the #1 root cause of all DS bugs
-        aiMetadata: vizType ? { type: vizType } : null,
+        // ─── FULL AI METADATA (not just one string) ───────────────────────
+        aiMetadata: {
+          // Legacy field (used by name-matching heuristics as fallback)
+          type: vizType ?? null,
+
+          // NEW: full vizSpec drives all rendering decisions spec-first
+          vizSpec: vizSpec ?? null,
+
+          // Legacy variable list for FloatingVariables display
+          allVars:   aiAnalysis?.variables ?? [],
+          algorithm: aiAnalysis?.algorithm ?? null,
+
+          // Explicit suppress flag (derived from vizSpec or legacy engine)
+          suppressRecursionTree:
+            vizSpec?.primary?.suppressRecursionTree ??
+            SUPPRESS_TREE_ENGINES.has(vizType),
+        },
       });
 
       workerRef.current.onmessage = ({ data }) => {
@@ -255,7 +438,7 @@ const VisualizerPage = () => {
       };
       workerRef.current.onerror = () => {
         setVizLoading(false);
-        setVizError("Worker error. Check console.");
+        setVizError("Worker error. Check browser console.");
       };
     } catch {
       setVizLoading(false);
@@ -263,19 +446,20 @@ const VisualizerPage = () => {
     }
   };
 
-  const handleEditorMount = (editor, monaco) => {
-    editorRef.current = editor; monacoRef.current = monaco;
+  // Theme registration factored out so both the editable (EditorPanel) and
+  // read-only (VisualPanel) Monaco instances can share it without stepping
+  // on each other's refs.
+  const applyEditorTheme = (monaco) => {
     monaco.editor.defineTheme("lc-dark", {
       base: "vs-dark", inherit: true,
       rules: [
         { token: "keyword", foreground: "ffa116" },
-        { token: "string", foreground: "00b8a3" },
-        { token: "number", foreground: "ffb800" },
-        { token: "type", foreground: "6ab0f5" },
+        { token: "string",  foreground: "00b8a3" },
+        { token: "number",  foreground: "ffb800" },
+        { token: "type",    foreground: "6ab0f5" },
       ],
       colors: {
-        "editor.background": "#1a1a1a",
-        "editor.foreground": "#eff2f5",
+        "editor.background": "#1a1a1a", "editor.foreground": "#eff2f5",
         "editor.lineHighlightBackground": "#262626",
         "editorLineNumber.foreground": "#4d4d4d",
         "editorLineNumber.activeForeground": "#8d8d8d",
@@ -288,18 +472,36 @@ const VisualizerPage = () => {
     });
     monaco.editor.setTheme("vs-dark");
   };
+
+  // Editable editor (lives in EditorPanel) — doesn't need refs, since active-line
+  // decorations are only ever drawn on the read-only trace editor.
+  const handleEditorMount = (editor, monaco) => {
+    applyEditorTheme(monaco);
+  };
+
+  // Read-only trace editor (lives in VisualPanel) — this is the one the
+  // active-line decoration effect above actually drives.
+  const handleReadOnlyEditorMount = (editor, monaco) => {
+    editorRef.current = editor; monacoRef.current = monaco;
+    applyEditorTheme(monaco);
+  };
+
   const shared = { language, userCode, handleEditorMount, activeLine, view };
-  
-  const aiProps = { 
-    analysis: aiAnalysis, 
-    isAnalyzing, 
-    error: aiError, 
+  // Same shared props, but wired to the read-only editor's mount handler.
+  const visualShared = { ...shared, handleEditorMount: handleReadOnlyEditorMount };
+
+  const aiProps = {
+    analysis:     aiAnalysis,
+    isAnalyzing,
+    error:        aiError,
     runState,
-    primedEngine: getVisualType(aiAnalysis) 
-  };;
+    primedEngine: getVisualType(aiAnalysis),
+    vizSpec,      // ← NEW: pass vizSpec down so VisualPanel → PolymorphicRouter can use it
+  };
 
   return (
     <>
+      <Toaster />
       <style>{`
         .monaco-active-line { background: rgba(255,161,22,0.1) !important; border-left: 2px solid #ffa116; }
         .monaco-active-glyph::before { content: '▶'; color: #ffa116; font-size: 10px; margin-left: 4px; }
@@ -318,18 +520,15 @@ const VisualizerPage = () => {
         @keyframes bounceIn { 0% { transform: scale(0) rotate(-45deg); opacity: 0; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
       `}</style>
 
-      <div
-        className="flex flex-col h-screen bg-[#1a1a1a] text-[#eff2f5] overflow-hidden"
-        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
-      >
+      <div className="flex flex-col h-screen bg-[#1a1a1a] text-[#eff2f5] overflow-hidden"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+
         {/* ── HEADER ── */}
         <header className="flex items-center justify-between px-4 h-12 border-b border-[#3d3d3d] bg-[#282828] flex-shrink-0">
           <div className="flex items-center gap-3 flex-1">
             {view === "visualizing" && (
-              <button
-                onClick={() => { setView("editor"); setIsPlaying(false); }}
-                className="flex items-center gap-1.5 text-xs text-[#8d8d8d] hover:text-[#eff2f5] transition-colors mr-2"
-              >
+              <button onClick={() => { setView("editor"); setIsPlaying(false); }}
+                className="flex items-center gap-1.5 text-xs text-[#8d8d8d] hover:text-[#eff2f5] transition-colors mr-2">
                 <MdArrowBack /> Back
               </button>
             )}
@@ -337,97 +536,113 @@ const VisualizerPage = () => {
             <span className="text-xs font-semibold tracking-widest uppercase text-[#8d8d8d]">
               Trace<span className="text-[#ffa116]">Lab</span>
             </span>
+            {/* Library optimized badge */}
+            {libraryMatch && (
+              <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-mono text-emerald-400 uppercase tracking-widest">
+                ✦ Optimized · {libraryMatch.problemId}
+              </span>
+            )}
+            {/* vizSpec loaded (LLM-generated, not library) */}
+            {vizSpec && !libraryMatch && (
+              <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[9px] font-mono text-indigo-400 uppercase tracking-widest">
+                ✦ {vizSpec.problemName || 'Spec Loaded'}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-2 flex-1">
             {view === "editor" && (
               <>
                 {/* Run */}
-                <button
-                  onClick={handleRun}
-                  disabled={runState === "running"}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold bg-[#3e3e3e] hover:bg-[#4d4d4d] text-[#eff2f5] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-                >
+                <button onClick={handleRun} disabled={runState === "running"}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-semibold bg-[#3e3e3e] hover:bg-[#4d4d4d] text-[#eff2f5] transition-all disabled:opacity-70 disabled:cursor-not-allowed">
                   {runState === "running" ? (
-                    <>
-                      <span className="w-3.5 h-3.5 border-2 border-[#eff2f5] border-t-transparent rounded-full animate-spin" />
-                      Running
-                    </>
+                    <><span className="w-3.5 h-3.5 border-2 border-[#eff2f5] border-t-transparent rounded-full animate-spin" />Running</>
                   ) : (
                     <><MdPlayArrow className="text-sm text-[#00b8a3]" /> Run</>
                   )}
                 </button>
 
                 {/* Visualize */}
-                <button
-                  onClick={handleVisualize}
-                  disabled={!canVisualize || vizLoading}
-                  title={!canVisualize ? "Run without errors first" : "Click to Visualize!"}
-                  className={`relative overflow-hidden flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 
-                    ${canVisualize && !vizLoading
-                      ? "bg-[#3e3e3e] hover:bg-[#4d4d4d] text-[#ffa116]"
-                      : "bg-[#1a1a1a] text-[#4d4d4d] cursor-not-allowed"} 
-                    ${unlocking ? "bg-[#ffa116]/10 border border-[#ffa116]/30 shadow-[0_0_12px_rgba(255,161,22,0.15)]" : "border border-transparent"}`}
-                >
+                <button onClick={handleVisualize} disabled={!canVisualize || vizLoading}
+                  title={!canVisualize ? "Run without errors first" : vizSpec ? `Visualize with spec: ${vizSpec.category}` : "Click to Visualize!"}
+                  className={`relative overflow-hidden flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-semibold transition-all duration-300
+                    ${canVisualize && !vizLoading ? "bg-[#3e3e3e] hover:bg-[#4d4d4d] text-[#ffa116]" : "bg-[#1a1a1a] text-[#4d4d4d] cursor-not-allowed"}
+                    ${unlocking ? "bg-[#ffa116]/10 border border-[#ffa116]/30 shadow-[0_0_12px_rgba(255,161,22,0.15)]" : "border border-transparent"}`}>
                   {vizLoading ? (
                     <span className="w-3.5 h-3.5 border-2 border-[#ffa116] border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <div className="icon-container">
                       {unlocking && <div className="explosion-ring animate-explosion" />}
-                      {!canVisualize ? (
-                        <MdLock className="absolute text-sm text-[#4d4d4d]" />
-                      ) : (
-                        <VscDebugAlt className={`absolute text-sm ${unlocking ? "icon-pop-in text-[#ffa116]" : ""}`} />
-                      )}
+                      {!canVisualize ? <MdLock className="absolute text-sm text-[#4d4d4d]" /> : <VscDebugAlt className={`absolute text-sm ${unlocking ? "icon-pop-in text-[#ffa116]" : ""}`} />}
                     </div>
                   )}
-                  <span>Visualize</span>
+                  <span>Visualize{vizSpec ? ' ✦' : ''}</span>
                 </button>
 
                 {/* Analyze */}
-                <button
-                  onClick={handleAnalyze}
-                  disabled={isAnalyzing || !userCode.trim()}
-                  title="AI Analyze"
-                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#282828] hover:bg-[#3e3e3e] text-[#8ab4f8] transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-[#3d3d3d]"
-                >
-                  <MdAutoAwesome className="text-sm" />
+                <button onClick={handleAnalyze} disabled={isAnalyzing || !userCode.trim()}
+                  title="AI Analyze — generates vizSpec for smart visualization"
+                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#282828] hover:bg-[#3e3e3e] text-[#8ab4f8] transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-[#3d3d3d]">
+                  {isAnalyzing
+                    ? <span className="w-3.5 h-3.5 border-2 border-[#8ab4f8] border-t-transparent rounded-full animate-spin" />
+                    : <MdAutoAwesome className="text-sm" />}
                 </button>
               </>
             )}
           </div>
 
           <div className="flex items-center justify-end gap-3 flex-1">
+            {documentId && (
+              <span className="text-[10px] font-mono text-[#8d8d8d]" title={documentId}>
+                {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved" : saveStatus}
+              </span>
+            )}
             {view === "editor" && (
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="bg-[#1a1a1a] border border-[#3d3d3d] text-[#eff2f5] text-xs rounded-md px-3 py-1.5 outline-none focus:border-[#ffa116] transition-colors cursor-pointer"
-              >
-                {LANGS.map((l) => (
-                  <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>
-                ))}
+              <select value={language} onChange={(e) => setLanguage(e.target.value)}
+                className="bg-[#1a1a1a] border border-[#3d3d3d] text-[#eff2f5] text-xs rounded-md px-3 py-1.5 outline-none focus:border-[#ffa116] transition-colors cursor-pointer">
+                {LANGS.map((l) => (<option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>))}
               </select>
             )}
           </div>
         </header>
 
-        {view === "editor" ? (
-          <EditorPanel
-            {...shared}
-            customInput={customInput} setCustomInput={setCustomInput}
-            setUserCode={setUserCode} runOutput={runOutput} runState={runState}
-            canVisualize={canVisualize} vizError={vizError} aiProps={aiProps}
-          />
-        ) : (
-          <VisualPanel
-            {...shared}
-            currentStep={currentStep} currentIndex={currentIndex} maxSteps={maxSteps}
-            isPlaying={isPlaying} speed={speed}
-            setCurrentIndex={setCurrentIndex} setIsPlaying={setIsPlaying} setSpeed={setSpeed}
-            aiProps={aiProps}
-          />
-        )}
+        {/*
+          Both panels stay mounted at all times and we crossfade between them
+          with CSS instead of conditionally rendering one or the other.
+          Conditionally rendering used to destroy and rebuild the entire
+          panel (including its Monaco editor instance) on every switch,
+          which is what caused the visible lag/jank. Keeping both mounted
+          and just toggling opacity/pointer-events makes the transition
+          instant and smooth.
+        */}
+        <div className="relative flex-1 min-h-0 overflow-hidden">
+          <div
+            className={`absolute inset-0 flex flex-col transition-opacity duration-200 ease-out ${
+              view === "editor" ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+            }`}
+          >
+            <EditorPanel {...shared}
+              customInput={customInput} setCustomInput={setCustomInput}
+              setUserCode={setUserCode} runOutput={runOutput} runState={runState}
+              canVisualize={canVisualize} vizError={vizError} aiProps={aiProps}
+            />
+          </div>
+
+          <div
+            className={`absolute inset-0 flex flex-col transition-opacity duration-200 ease-out ${
+              view === "visualizing" ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+            }`}
+          >
+            <VisualPanel {...visualShared}
+              currentStep={currentStep} currentIndex={currentIndex} maxSteps={maxSteps}
+              isPlaying={isPlaying} speed={speed}
+              setCurrentIndex={setCurrentIndex} setIsPlaying={setIsPlaying} setSpeed={setSpeed}
+              aiProps={aiProps}
+              vizSpec={vizSpec}    // ← NEW: pass vizSpec directly to VisualPanel
+            />
+          </div>
+        </div>
       </div>
     </>
   );

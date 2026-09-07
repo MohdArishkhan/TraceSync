@@ -1,125 +1,145 @@
-import React, { useRef, useState } from "react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { useNavigate } from "react-router-dom"; // Imported useNavigate
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronDown, ArrowLeft, HelpCircle, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-function FAQ({ isLightMode, setisLightMode }) {
-  const navigate = useNavigate(); // Initialized navigate
-  
-  const questions_answer = [
-    {
-      ques: "How CodeDoodle works?",
-      ans: "Our code-sharing website is a real-time collaborative coding platform that allows developers to write, edit, and share code seamlessly in an interactive environment. It supports multiple programming languages, live code execution, and built-in chat for instant communication. Whether you're working on a team project, conducting coding interviews, or teaching, our platform ensures smooth collaboration with features like version control, cloud storage, and customizable themes for an enhanced coding experience.",
-    },
-    {
-      ques: "What makes CodeDoodle different from other code-sharing tools?",
-      ans: "Unlike traditional pastebin-style tools, CodeDoodle offers real-time collaboration, syntax highlighting, live preview support, chat integration, and project-based sharing — all in one place.",
-    },
-    {
-      ques: "Can I use CodeDoodle for remote interviews and technical screenings?",
-      ans: "Yes! CodeDoodle provides a live coding environment with communication tools, perfect for interviews, pair programming, and mentorship sessions.",
-    },
-    {
-      ques: "Is my code safe and private on CodeDoodle?",
-      ans: "Definitely. We offer password-protected rooms, role-based access control, and encryption during code transmission to keep your data secure.",
-    },
-    {
-      ques: "Does CodeDoodle support multiple programming languages?",
-      ans: "Yes! We support over 40 programming languages including JavaScript, Python, C++, Java, and more — each with syntax highlighting.",
-    },
-    {
-      ques: "Do I need to install anything to use CodeDoodle?",
-      ans: "Nope! CodeDoodle is fully web-based. Just open your browser, create or join a room, and you're good to go — no downloads needed.",
-    },
-  ];
+const questions_answer = [
+  {
+    ques: "How does CodeDoodle synchronize code in real-time?",
+    ans: "CodeDoodle uses WebSockets combined with operational transformation algorithms to synchronize AST state across all connected peers with sub-millisecond latency. Every keystroke is broadcasted and reconciled instantaneously.",
+  },
+  {
+    ques: "How does the integrated voice and video calling work?",
+    ans: "Voice and video are built directly on top of WebRTC mesh peer connections. Media flows directly between participants with zero third-party meeting servers, ensuring low latency and maximum privacy.",
+  },
+  {
+    ques: "Can I use CodeDoodle for technical interviews and pair programming?",
+    ans: "Yes! CodeDoodle provides integrated problem descriptions, live test case runners, code execution, multi-cursor indicators, and integrated audio/video designed specifically for interviews and pairing sessions.",
+  },
+  {
+    ques: "Is my code secure and private?",
+    ans: "All room traffic is end-to-end encrypted over secure WebSockets (WSS) and WebRTC DTLS/SRTP protocols. Code sessions are ephemeral unless explicitly saved to your personal workspace.",
+  },
+  {
+    ques: "Which programming languages are supported?",
+    ans: "CodeDoodle supports 15+ languages including JavaScript, TypeScript, Python, C++, Java, Rust, Go, SQL, HTML/CSS, and more with full syntax highlighting.",
+  },
+  {
+    ques: "Do I need to install any software or extensions?",
+    ans: "No installation is required. CodeDoodle runs completely inside any modern web browser on desktop, tablet, and mobile devices.",
+  },
+];
 
-  const refs = useRef([]);
-  const [openStates, setOpenStates] = useState(Array(questions_answer.length).fill(false));
+function FAQ({ isLightMode }) {
+  const navigate = useNavigate();
+  const [openIndex, setOpenIndex] = useState(0);
 
-  useGSAP(() => {
-    refs.current.forEach((ref) => {
-      if (ref) gsap.set(ref, { height: 0, opacity: 0 });
-    });
-  }, []);
-
-  const toggleContent = (index) => {
-    const updatedStates = [...openStates];
-    updatedStates[index] = !updatedStates[index];
-
-    if (updatedStates[index]) {
-      gsap.to(refs.current[index], {
-        height: "auto",
-        opacity: 1,
-        duration: 0.5,
-        ease: "power2.out",
-      });
-    } else {
-      gsap.to(refs.current[index], {
-        height: 0,
-        opacity: 0,
-        duration: 0.5,
-        ease: "power2.in",
-      });
-    }
-
-    setOpenStates(updatedStates);
+  const toggleAccordion = (index) => {
+    setOpenIndex(openIndex === index ? -1 : index);
   };
 
   return (
     <div
-      className={` ${
-        isLightMode ? "bg-gray-100 text-gray-800" : "bg-black text-white"
-      } flex flex-col items-center justify-center min-h-screen px-9 py-9 lg:px-12 lg:py-20 `}
+      className={`min-h-screen px-4 sm:px-6 lg:px-8 py-12 sm:py-20 transition-colors duration-300 relative overflow-hidden ${
+        isLightMode
+          ? "bg-slate-50 bg-grid-pattern-light text-gray-900"
+          : "bg-dark-bg bg-grid-pattern text-white"
+      }`}
     >
-      {/* --- BACK NAVIGATION BUTTON --- */}
-      <div className="w-full max-w-5xl flex justify-start mb-8 lg:mb-12">
-        <button
-          onClick={() => navigate(-1)} // Navigates back to the previous page
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold transition-all duration-300 transform hover:-translate-x-1 active:scale-95 ${
-            isLightMode
-              ? "bg-white text-gray-800 shadow-md hover:shadow-lg border border-gray-200"
-              : "bg-gray-900 text-white shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-gray-800 hover:border-gray-700"
-          }`}
-        >
-          <i className="ri-arrow-left-line text-xl"></i>
-          Back
-        </button>
-      </div>
-
-      <h1 className="text-2xl lg:text-6xl font-bold text-center mb-10 lg:mb-16">
-        If you've got questions, we've got the answers.
-      </h1>
-
-      <div className="w-full max-w-5xl space-y-6">
-        {questions_answer.map((item, index) => (
-          <div
-            key={index}
-            className={`border border-gray-300 rounded-xl ${
+      <div className="max-w-4xl mx-auto relative z-10">
+        {/* Back Navigation */}
+        <div className="flex justify-start mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-tech font-mono text-xs font-semibold border backdrop-blur-md transition-all duration-200 ${
               isLightMode
-                ? "bg-white"
-                : "bg-gray-950 hover:bg-gray-900 transform duration-300 transition-all"
-            } shadow-xl`}
+                ? "bg-white border-gray-200 text-gray-700 hover:border-accent-violet hover:text-accent-violet"
+                : "bg-dark-surface border-dark-border text-gray-300 hover:border-accent-violet hover:text-white"
+            }`}
           >
-            <div
-              className="flex items-center gap-2 justify-between px-3 py-2 lg:px-6 lg:py-6 cursor-pointer"
-              onClick={() => toggleContent(index)}
-            >
-              <h2 className="text-1xl lg:text-2xl font-semibold">{item.ques}</h2>
-              <i
-                className={`ri-${
-                  openStates[index] ? "close" : "add"
-                }-line text-2xl lg:text-3xl hover:transform transition-all duration-300`}
-              ></i>
-            </div>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+        </div>
 
-            <div
-              ref={(el) => (refs.current[index] = el)}
-              className="overflow-hidden px-4 lg:px-6"
-            >
-              <p className="text-sm lg:text-lg py-4 leading-relaxed">{item.ans}</p>
-            </div>
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+          <div className="inline-flex items-center gap-2 font-mono text-xs tracking-widest uppercase text-accent-violet">
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Knowledge Base</span>
           </div>
-        ))}
+          <h1
+            className={`font-mono text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight ${
+              isLightMode ? "text-gray-900" : "text-white"
+            }`}
+          >
+            Frequently Asked Questions
+          </h1>
+          <p
+            className={`text-sm sm:text-base font-sans ${
+              isLightMode ? "text-gray-600" : "text-gray-400"
+            }`}
+          >
+            Everything you need to know about CodeDoodle's architecture, security, and features.
+          </p>
+        </div>
+
+        {/* Accordion List */}
+        <div className="space-y-4">
+          {questions_answer.map((item, index) => {
+            const isOpen = openIndex === index;
+            return (
+              <div
+                key={index}
+                className={`rounded-tech-lg border backdrop-blur-sm transition-all overflow-hidden ${
+                  isLightMode
+                    ? "bg-white border-gray-200 shadow-sm hover:border-gray-300"
+                    : "bg-dark-surface/80 border-dark-border hover:border-accent-violet/40"
+                }`}
+              >
+                <button
+                  onClick={() => toggleAccordion(index)}
+                  className="w-full flex items-center justify-between p-5 sm:p-6 text-left cursor-pointer"
+                >
+                  <span
+                    className={`font-mono text-base sm:text-lg font-semibold pr-4 ${
+                      isOpen ? "text-accent-violet" : isLightMode ? "text-gray-900" : "text-white"
+                    }`}
+                  >
+                    {item.ques}
+                  </span>
+                  <ChevronDown
+                    className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${
+                      isOpen ? "rotate-180 text-accent-violet" : "text-gray-400"
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div
+                        className={`px-5 sm:px-6 pb-6 text-xs sm:text-sm leading-relaxed border-t pt-4 ${
+                          isLightMode
+                            ? "border-gray-100 text-gray-600"
+                            : "border-dark-border text-gray-300"
+                        }`}
+                      >
+                        {item.ans}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1,83 +1,197 @@
-import { useGSAP } from '@gsap/react';
-import gsap from 'gsap';
-import ScrollTrigger from 'gsap/ScrollTrigger';
-import React, { useRef } from 'react';
-import "../App.css";
+import React from "react";
+import { motion } from "framer-motion";
+import {
+  Code,
+  Globe2,
+  Lock,
+  Sparkles,
+  Video,
+  Cpu,
+  Palette,
+  Zap,
+} from "lucide-react";
 
-gsap.registerPlugin(ScrollTrigger);
+const cardsData = [
+  {
+    icon: Code,
+    tag: "LIVE",
+    title: "Code Sharing",
+    desc: "Collaborative multi-cursor editing with sub-millisecond AST sync.",
+    accent: "from-purple-500/20 to-indigo-500/10",
+    border: "group-hover:border-purple-500/50",
+    iconColor: "text-purple-400",
+  },
+  {
+    icon: Globe2,
+    tag: "GLOBAL",
+    title: "Instant Rooms",
+    desc: "Spin up unique room IDs instantly with zero configuration or wait.",
+    accent: "from-cyan-500/20 to-blue-500/10",
+    border: "group-hover:border-cyan-500/50",
+    iconColor: "text-cyan-400",
+  },
+  {
+    icon: Lock,
+    tag: "SECURE",
+    title: "Private Sessions",
+    desc: "End-to-end encrypted rooms protected by ephemeral session keys.",
+    accent: "from-emerald-500/20 to-teal-500/10",
+    border: "group-hover:border-emerald-500/50",
+    iconColor: "text-emerald-400",
+  },
+  {
+    icon: Sparkles,
+    tag: "AI POWERED",
+    title: "Smart Reviewer",
+    desc: "Real-time AI code analysis, syntax fixes, and performance critique.",
+    accent: "from-amber-500/20 to-orange-500/10",
+    border: "group-hover:border-amber-500/50",
+    iconColor: "text-amber-400",
+  },
+  {
+    icon: Video,
+    tag: "WEBRTC",
+    title: "Integrated Video",
+    desc: "HD video and crystal-clear voice calling directly beside the editor.",
+    accent: "from-rose-500/20 to-pink-500/10",
+    border: "group-hover:border-rose-500/50",
+    iconColor: "text-rose-400",
+  },
+  {
+    icon: Cpu,
+    tag: "MULTI-LANG",
+    title: "15+ Languages",
+    desc: "Syntax highlighting, autocomplete, and runtime for major languages.",
+    accent: "from-blue-500/20 to-indigo-500/10",
+    border: "group-hover:border-blue-500/50",
+    iconColor: "text-blue-400",
+  },
+  {
+    icon: Palette,
+    tag: "CUSTOM THEMES",
+    title: "Theme Studio",
+    desc: "Switch between custom crafted light & dark themes seamlessly.",
+    accent: "from-fuchsia-500/20 to-purple-500/10",
+    border: "group-hover:border-fuchsia-500/50",
+    iconColor: "text-fuchsia-400",
+  },
+  {
+    icon: Zap,
+    tag: "EXECUTION",
+    title: "Live Runner",
+    desc: "Execute and visualize your algorithms without local environment setup.",
+    accent: "from-lime-500/20 to-emerald-500/10",
+    border: "group-hover:border-lime-500/50",
+    iconColor: "text-lime-400",
+  },
+];
 
-function Cards({isLightMode,setisLightMode}) {
-  const cards_obj = [
-    {
-      color: "bg-[rgb(252,207,0)]",
-      span_content: "Live",
-      h1_content: " Code Sharing.",
-      h4_content: "Write, edit, and debug code together instantly.",
-    },
-    
-    {
-      color: "bg-[rgb(255,111,145)]",
-      span_content: "Global",
-      h1_content: " Rooms",
-      h4_content: "Collaborate with anyone around the world in shared coding sessions.",
-    },
-    {
-      color: "bg-[rgb(0,221,176)]",
-      span_content: "Private",
-      h1_content: " Sessions",
-      h4_content: "Create invite-only rooms for secure and focused collaboration.",
-    },
-    {
-      color: "bg-[rgb(255,163,102)]",
-      span_content: "AI",
-      h1_content: " Code Suggestions",
-      h4_content: "Get real-time code completions and intelligent bug detection.",
-    },
-    {
-      color: "bg-[rgb(161,196,253)]",
-      span_content: "Video +",
-      h1_content: " Voice Chat",
-      h4_content: "Talk face-to-face while you code using built-in voice and video.",
-    },
-    {
-      color: "bg-[rgb(255,203,176)]",
-      span_content: "20+",
-      h1_content: " Programming Languages",
-      h4_content: "From JavaScript to Python, share code in your favorite language.",
-    },
-    {
-      color: "bg-[rgb(250,214,165)]",
-      span_content: "Theme",
-      h1_content: " Customization",
-      h4_content: "Switch between light, dark, or your own custom themes.",
-    },
-    {
-      color: "bg-[rgb(174,217,224)]",
-      span_content: "Real-Time",
-      h1_content: " Code Execution",
-      h4_content: "Run and test your code live without any setup.",
-    },
-  ];
-
+function Cards({ isLightMode }) {
   return (
-    <div className={`hide-scrollbar overflow-x-auto overflow-y-hidden scrollbar-hide ${isLightMode ? "bg-white" : "bg-black"} w-full py-12 px-4`}>
-      <div className="flex space-x-4 sm:space-x-8 md:space-x-10 w-max">
-        {cards_obj.map((item, index) => (
-          <div
-            key={index}
-            className={`${item.color} flex-shrink-0 w-[250px] sm:w-[340px] md:w-[380px] lg:w-[400px] h-[380px] sm:h-[520px] md:h-[580px] rounded-3xl shadow-xl hover:scale-105 transition-transform duration-500 ease-in-out flex flex-col items-start justify-center px-4 lg:px-6 sm:px-8 py-3 lg:py-6`}
-          >
-            <h1 className="text-gray-800 font-bold text-2xl lg:text-3xl sm:text-4xl md:text-5xl leading-tight">
-              <span className="text-5xl sm:text-6xl md:text-7xl block">{item.span_content}</span>
-              {item.h1_content}
-            </h1>
-            <h4 className="text-gray-700 font-medium text-1xl lg:text-lg sm:text-xl md:text-2xl mt-4 sm:mt-6">
-              {item.h4_content}
-            </h4>
+    <section
+      className={`py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden ${
+        isLightMode ? "bg-slate-50/50" : "bg-[#09090f]"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+          <div className="inline-flex items-center gap-2 font-mono text-xs tracking-widest uppercase text-accent-violet">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse"></span>
+            Capabilities
           </div>
-        ))}
+          <h2
+            className={`font-mono text-3xl sm:text-4xl font-bold tracking-tight ${
+              isLightMode ? "text-gray-900" : "text-white"
+            }`}
+          >
+            Engineered for Modern Engineering
+          </h2>
+          <p
+            className={`text-sm sm:text-base font-sans ${
+              isLightMode ? "text-gray-600" : "text-gray-400"
+            }`}
+          >
+            A powerful suite of real-time collaborative development tools built with performance at core.
+          </p>
+        </div>
+
+        {/* Responsive Grid of Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {cardsData.map((item, index) => {
+            const IconComponent = item.icon;
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                className={`group relative p-6 rounded-tech-lg border backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 ${item.border} ${
+                  isLightMode
+                    ? "bg-white/80 border-gray-200 hover:shadow-xl hover:shadow-purple-500/5"
+                    : "bg-dark-surface/60 border-dark-border hover:shadow-2xl hover:shadow-purple-500/10"
+                }`}
+              >
+                {/* Subtle gradient background on hover */}
+                <div
+                  className={`absolute inset-0 rounded-tech-lg bg-gradient-to-br ${item.accent} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}
+                />
+
+                <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
+                  <div>
+                    {/* Top Bar: Icon + Tag */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div
+                        className={`p-2.5 rounded-tech border transition-colors duration-300 ${
+                          isLightMode
+                            ? "bg-gray-100/80 border-gray-200"
+                            : "bg-dark-bg/80 border-dark-border"
+                        }`}
+                      >
+                        <IconComponent className={`w-5 h-5 ${item.iconColor}`} />
+                      </div>
+                      <span
+                        className={`font-mono text-[10px] tracking-wider px-2 py-0.5 rounded border ${
+                          isLightMode
+                            ? "bg-gray-100 border-gray-200 text-gray-700"
+                            : "bg-dark-bg border-dark-border text-gray-400"
+                        }`}
+                      >
+                        {item.tag}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3
+                      className={`font-mono text-lg font-bold tracking-tight mb-2 ${
+                        isLightMode ? "text-gray-900" : "text-white"
+                      }`}
+                    >
+                      {item.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p
+                      className={`text-xs sm:text-sm leading-relaxed ${
+                        isLightMode ? "text-gray-600" : "text-gray-400"
+                      }`}
+                    >
+                      {item.desc}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-1.5 text-[11px] font-mono text-accent-violet font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>Explore feature</span>
+                    <span>→</span>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 

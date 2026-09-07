@@ -15,6 +15,9 @@
     "@google/generative-ai": "^0.24.0",
     "@gsap/react": "^2.1.2",
     "@monaco-editor/react": "^4.6.0",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "@supabase/supabase-js": "^2.115.0",
     "@uiw/codemirror-theme-dracula": "^4.23.10",
     "@uiw/react-codemirror": "^4.23.10",
     "@xyflow/react": "^12.11.1",
@@ -27,6 +30,7 @@
     "gsap": "^3.12.7",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.539.0",
+    "monaco-editor": "^0.56.0",
     "react": "^19.0.0",
     "react-copy-to-clipboard": "^5.1.0",
     "react-dom": "^19.0.0",
@@ -37,7 +41,12 @@
     "react-router-dom": "^7.4.0",
     "react-select": "^5.10.2",
     "socket.io-client": "^4.8.1",
-    "uuid": "^11.1.0"
+    "three": "^0.185.1",
+    "uuid": "^11.1.0",
+    "y-indexeddb": "^9.0.12",
+    "y-monaco": "^0.1.6",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.32"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import CodeMirror from "codemirror";
 import "codemirror/mode/javascript/javascript";
 import "codemirror/theme/dracula.css";
 import "codemirror/addon/edit/closetag";
 import "codemirror/addon/edit/closebrackets";
 import "codemirror/lib/codemirror.css";
-import { MdLightMode, MdDarkMode } from "react-icons/md";
 import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import ShareCircleBold from "../assets/ShareCircleBold";
@@ -31,8 +31,8 @@ const LeftPanel = ({ isLightMode, setisLightMode, feedback, setFeedback }) => {
       editorRef.current = editor;
 
       const editorElement = editorRef.current.getWrapperElement();
-      editorElement.style.borderRadius = "15px";
-      editorElement.style.overflow = "hidden";
+      editorElement.style.borderRadius = "0px";
+      editorElement.style.height = "100%";
 
       editor.on("change", (instance) => {
         setCode(instance.getValue());
@@ -48,7 +48,7 @@ const LeftPanel = ({ isLightMode, setisLightMode, feedback, setFeedback }) => {
 
   const sendCodeToAI = () => {
     setIsLoading(true);
-    const loadingToastId = toast.loading("Processing...");
+    const loadingToastId = toast.loading("Analyzing complexity...");
     axios
       .post(`${BACKEND_URL}/Code-reviewer/get-response`, { Code })
       .then((res) => {
@@ -57,86 +57,61 @@ const LeftPanel = ({ isLightMode, setisLightMode, feedback, setFeedback }) => {
       })
       .catch(() => {
         toast.dismiss(loadingToastId);
-        toast.error("Error receiving message.");
+        toast.error("Failed to fetch analysis.");
       })
       .finally(() => setIsLoading(false));
   };
 
   return (
-    <div className="flex flex-col md:flex-col gap-3 rounded-lg overflow-hidden h-full w-full md:w-1/2">
-      {/* Editor Container */}
-      <div className="flex-grow h-[60vh] md:h-[70vh] w-full rounded-lg relative">
-        <textarea
-          defaultValue="// Write your Code here"
-          ref={textareaRef}
-          style={{
-            position: "absolute",
-            left: "-9999px",
-            top: "-9999px",
-            opacity: 0,
-            pointerEvents: "none",
-          }}
-        />
-      </div>
-
-      {/* Bottom controls */}
-      <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-center justify-between p-3">
-        <div className="flex items-center gap-3 w-full sm:flex justify-center md:w-auto">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+      className={`flex flex-col h-1/2 md:h-full w-full md:w-1/2 rounded-xl overflow-hidden border shadow-sm transition-colors duration-300 ${
+        isLightMode ? "bg-white border-gray-200" : "bg-zinc-900 border-zinc-800"
+      }`}
+    >
+      {/* Header Toolbar */}
+      <div className={`flex-none flex items-center justify-between px-4 py-3 border-b ${
+        isLightMode ? "border-gray-200" : "border-zinc-800"
+      }`}>
+        <div className="flex items-center gap-2">
           <ShareCircleBold
-            className={`${isLightMode ? "text-blue-500" : "text-green-400"}`}
-            size={28}
+            className={isLightMode ? "text-gray-900" : "text-gray-100"}
+            size={20}
           />
-          
-          <h1
-            className={`text-lg md:text-2xl  font-bold ${
-              isLightMode ? "text-blue-700" : "text-green-300"
-            }`}
-          >
-            Code Reviewer
+          <h1 className={`text-base font-semibold font-mono ${
+            isLightMode ? "text-gray-900" : "text-gray-100"
+          }`}>
+            TraceSync
           </h1>
         </div>
-
+        
         <button
           onClick={sendCodeToAI}
           disabled={isLoading}
-          className={`w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white transition transform
-            ${
-              isLightMode
-                ? "bg-blue-500 hover:bg-blue-700 active:bg-blue-800"
-                : "bg-green-500 hover:bg-green-700 active:bg-green-800"
+          className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all
+            ${isLightMode 
+              ? "bg-gray-900 text-white hover:bg-gray-800" 
+              : "bg-white text-zinc-900 hover:bg-gray-200"
             }
-            disabled:opacity-60 disabled:cursor-not-allowed
-            text-sm md:text-base
-            hover:scale-95 active:scale-90
+            disabled:opacity-50 disabled:cursor-not-allowed
           `}
         >
-          {isLoading ? (
-            <>
-              <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-              <span>Processing...</span>
-            </>
-          ) : (
-            "Execute and Analyze with AI"
-          )}
+          {isLoading ? "Processing..." : "Run Analysis"}
         </button>
       </div>
-      <Toaster />
-    </div>
+
+      {/* Editor Container */}
+      <div className="flex-1 min-h-0 w-full relative">
+        <textarea
+          defaultValue="// Write your Code here"
+          ref={textareaRef}
+          className="hidden"
+        />
+      </div>
+      <Toaster position="bottom-center" />
+    </motion.div>
   );
 };
 

@@ -2,125 +2,200 @@ import React, { useState } from "react";
 import ChatBot from "../assets/chatBot.png";
 import meeting from "../assets/meeting.png";
 import codeReviewer from "../assets/codeReviewer.png";
-import { MdOpenInNew } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../Context/AppContext";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const slides = [
   {
     id: 1,
-    heading: "CodeDoodle ChatBot",
-    text: "Looking for coding assistance? Our AI-powered chatbot is here to help! Get real-time answers, debugging tips, and code suggestions instantly.",
-    bg: "bg-slate-100",
+    tag: "AI ASSISTANT",
+    heading: "CodeDoodle Intelligent ChatBot",
+    text: "Get real-time code completions, algorithmic insights, debugging tips, and step-by-step logic explanations powered by state-of-the-art AI.",
     image: ChatBot,
     link: "/ChatDesktop",
+    badgeColor: "text-purple-400 border-purple-500/30 bg-purple-500/10",
   },
   {
     id: 2,
-    heading: "CodeDoodle Meeting",
-    text: "Need a space to collaborate and discuss your projects? CodeDoodle Meeting allows seamless video calls with your team. Share screens, chat, and brainstorm ideas.",
-    bg: "bg-slate-100",
+    tag: "WEBRTC CONFERENCING",
+    heading: "CodeDoodle Live Meetings",
+    text: "Seamless peer-to-peer audio/video calling and screen-sharing directly integrated with the collaborative editor. Zero delay, zero setup.",
     image: meeting,
-    link: "/Instruction",
+    link: "/LobbyPage",
+    badgeColor: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
   },
   {
     id: 3,
-    heading: "CodeDoodle Code Reviewer",
-    text: "Want your code reviewed? Get constructive feedback and grow as a developer with CodeDoodle’s reviewing tool!",
-    bg: "bg-slate-100",
+    tag: "CODE QUALITY",
+    heading: "Automated Code Reviewer",
+    text: "Instant code audits, security vulnerability scan, AST analysis, and performance tips to elevate your code quality before every commit.",
     image: codeReviewer,
     link: "/CodeReviewer",
+    badgeColor: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
   },
 ];
 
 const Slider = ({ isLightMode }) => {
-  // const { userData } = useAppContext();
-  // const Navigate = useNavigate();
-  // const [currentIndex, setCurrentIndex] = useState(0);
+  const { userData } = useAppContext();
+  const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % slides.length);
-  // const prevSlide = () =>
-  //   setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % slides.length);
+  const prevSlide = () =>
+    setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
 
-  // return (
-  //   <>
-  //     <Toaster />
-  //     <div className={`${isLightMode ? "bg-white" : "bg-black"}`}>
-  //       <h1
-  //         className={`font-bold text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl p-4 ${
-  //           isLightMode ? "text-gray-950" : "text-gray-100"
-  //         }`}
-  //       >
-  //         New Features Launched
-  //       </h1>
+  const handleTryNow = (link) => {
+    if (!userData) {
+      toast.error("Please login to access this tool");
+      return;
+    }
+    navigate(link);
+  };
 
-  //       <div className="w-full overflow-hidden p-3 relative">
-  //         <div
-  //           className="flex transition-transform duration-500 ease-in-out"
-  //           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-  //         >
-  //           {slides.map((slide) => (
-  //             <div
-  //               key={slide.id}
-  //               className={`min-w-full flex flex-col h-fit md:flex-row items-center justify-center p-4 sm:p-6 md:p-8 gap-6 ${slide.bg} rounded-xl shadow-lg h-[85vh]`}
-  //             >
-  //               {/* Text content */}
-  //               <div className="w-full md:w-1/2 flex flex-col gap-4 text-center md:text-left">
-  //                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900">
-  //                   {slide.heading}
-  //                 </h1>
-  //                 <h2 className="text-base sm:text-lg md:text-xl text-gray-700 font-medium">
-  //                   {slide.text}
-  //                 </h2>
+  const slide = slides[currentIndex];
 
-  //                 <button
-  //                   onClick={() => {
-  //                     !userData
-  //                       ? toast.error("Login/Register to access the tools")
-  //                       : Navigate(slide.link);
-  //                   }}
-  //                   className={`mt-4 w-fit flex items-center gap-2 px-5 py-2.5 text-sm sm:text-base rounded-full transition-all font-light text-white lg:font-bold self-center ${
-  //                     isLightMode
-  //                       ? "bg-blue-500 hover:bg-transparent hover:text-blue-600 hover:border-blue-600"
-  //                       : "bg-green-500 hover:bg-transparent hover:text-green-500 hover:border-green-500"
-  //                   } border-2 ${
-  //                     !userData ? "cursor-not-allowed opacity-60" : ""
-  //                   }`}
-  //                 >
-  //                   Try it Now!
-  //                 </button>
-  //               </div>
+  return (
+    <section
+      className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative ${
+        isLightMode ? "bg-white" : "bg-dark-bg"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
+          <div className="inline-flex items-center gap-2 font-mono text-xs tracking-widest uppercase text-accent-violet">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Spotlight Tools</span>
+          </div>
+          <h2
+            className={`font-mono text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight ${
+              isLightMode ? "text-gray-900" : "text-white"
+            }`}
+          >
+            Integrated Power Tools
+          </h2>
+        </div>
 
-  //               {/* Image */}
-  //               <div className="w-full sm:w-4/5 md:w-1/2 flex justify-center items-center">
-  //                 <img
-  //                   src={slide.image}
-  //                   alt="Slide"
-  //                   className="max-w-[50%] sm:max-w-[60%] md:max-w-[80%] lg:max-w-[90%] h-auto object-contain"
-  //                 />
-  //               </div>
-  //             </div>
-  //           ))}
-  //         </div>
+        {/* Carousel Container */}
+        <div
+          className={`relative rounded-tech-lg border p-6 sm:p-10 lg:p-12 backdrop-blur-sm transition-all overflow-hidden ${
+            isLightMode
+              ? "bg-slate-50 border-gray-200 shadow-xl"
+              : "bg-dark-surface/80 border-dark-border shadow-2xl"
+          }`}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={slide.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35 }}
+              className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
+            >
+              {/* Left Column: Text & Action */}
+              <div className="lg:col-span-7 space-y-5">
+                <span
+                  className={`font-mono text-[11px] tracking-wider px-3 py-1 rounded border font-medium ${slide.badgeColor}`}
+                >
+                  {slide.tag}
+                </span>
 
-  //         {/* Navigation Buttons */}
-  //         <button
-  //           onClick={prevSlide}
-  //           className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-white border rounded-full px-3 py-1 shadow text-xl"
-  //         >
-  //           ‹
-  //         </button>
-  //         <button
-  //           onClick={nextSlide}
-  //           className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-white border rounded-full px-3 py-1 shadow text-xl"
-  //         >
-  //           ›
-  //         </button>
-  //       </div>
-  //     </div>
-  //   </>
-  // );
+                <h3
+                  className={`font-mono text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight ${
+                    isLightMode ? "text-gray-900" : "text-white"
+                  }`}
+                >
+                  {slide.heading}
+                </h3>
+
+                <p
+                  className={`text-sm sm:text-base leading-relaxed ${
+                    isLightMode ? "text-gray-600" : "text-gray-400"
+                  }`}
+                >
+                  {slide.text}
+                </p>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => handleTryNow(slide.link)}
+                    className="group px-6 py-3 rounded-tech font-mono text-sm font-semibold transition-all duration-300 bg-accent-violet hover:bg-accent-violet/90 text-white shadow-md shadow-accent-violet/20 flex items-center gap-2"
+                  >
+                    <span>Launch Tool</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Screenshot / Illustration */}
+              <div className="lg:col-span-5 flex justify-center items-center">
+                <div
+                  className={`relative p-4 rounded-tech-lg border overflow-hidden ${
+                    isLightMode ? "bg-white border-gray-200" : "bg-dark-bg/60 border-dark-border"
+                  }`}
+                >
+                  <img
+                    src={slide.image}
+                    alt={slide.heading}
+                    className="max-h-64 sm:max-h-80 w-auto object-contain rounded"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Carousel Navigation Buttons */}
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-dark-border">
+            <div className="flex items-center gap-2">
+              {slides.map((s, idx) => (
+                <button
+                  key={s.id}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    idx === currentIndex
+                      ? "w-8 bg-accent-violet"
+                      : isLightMode
+                      ? "w-2 bg-gray-300 hover:bg-gray-400"
+                      : "w-2 bg-dark-border hover:bg-gray-600"
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={prevSlide}
+                className={`p-2 rounded-tech border transition-all ${
+                  isLightMode
+                    ? "bg-white border-gray-200 hover:border-accent-violet text-gray-700"
+                    : "bg-dark-bg border-dark-border hover:border-accent-violet text-gray-300"
+                }`}
+                aria-label="Previous slide"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={nextSlide}
+                className={`p-2 rounded-tech border transition-all ${
+                  isLightMode
+                    ? "bg-white border-gray-200 hover:border-accent-violet text-gray-700"
+                    : "bg-dark-bg border-dark-border hover:border-accent-violet text-gray-300"
+                }`}
+                aria-label="Next slide"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 };
 
 export default Slider;

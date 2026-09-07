@@ -1,98 +1,82 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdEmail, MdLogout } from "react-icons/md";
+import { LogOut, User, ShieldCheck } from "lucide-react";
 import { useAppContext } from "../Context/AppContext";
 import axios from "axios";
-import { useEffect } from "react";
 
-const  Profile = ({ userName, isLightMode, setisLightMode }) => {
-  const [showList, setshowList] = useState(false);
-  const { BACKEND_URL,getUserData, userData, setUserData, setisLoggedIn, isLoggedIn } = useAppContext();
+const Profile = ({ userName, isLightMode }) => {
+  const [showList, setShowList] = useState(false);
+  const { BACKEND_URL, getUserData, userData, setUserData, setisLoggedIn, isLoggedIn } = useAppContext();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // console.log("bhai hora hai referesh");
-    // console.log("Is Logged In ? "+isLoggedIn);
-    getUserData(); // ✅ ye context se userData ko refresh karega
-}, []);
-
+    getUserData();
+  }, []);
 
   async function logOutUser() {
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/auth/logout`,{}, {
+      const response = await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, {
         withCredentials: true,
       });
-        // console.log("Logout response:", response.data);
 
       if (response.data.status) {
-        // console.log("User logged out successfully");
         setisLoggedIn(false);
-        setUserData(null); 
+        setUserData(null);
         navigate("/");
       }
     } catch (e) {
-      // console.log("Error logging out user:", e);
+      console.error("Error logging out user:", e);
     }
   }
-  
-  function gotopage(){
-    navigate("/verifyEmail");
-  }
-
-  useEffect(() => {
-  // console.log("UPDATED userData in Profile:", userData);
-}, [userData]);
-
 
   return (
     <div
       className="relative"
-      onMouseEnter={() => setshowList(true)}
-      onMouseLeave={() => setshowList(false)}
+      onMouseEnter={() => setShowList(true)}
+      onMouseLeave={() => setShowList(false)}
     >
-      <p
-        className={`font-bold text-2xl ${
+      <button
+        className={`font-mono text-sm font-semibold w-9 h-9 rounded-tech flex items-center justify-center border transition-all duration-200 ${
           isLightMode
-            ? "bg-gray-200 hover:border border-gray-500"
-            : "text-black hover:border border-white bg-white"
-        } hover:cursor-pointer rounded-full px-4 py-2 hover:transition-all duration-200 transform hover:scale-105`}
-      >
-        {userName[0].toUpperCase()}
-      </p>
-
-      <div
-        className={`absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg p-2 transform transition-all duration-200 ${
-          showList ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"
+            ? "bg-gray-100 border-gray-300 text-gray-800 hover:border-accent-violet"
+            : "bg-dark-surface border-dark-border text-white hover:border-accent-violet"
         }`}
       >
+        {userName ? userName[0].toUpperCase() : "U"}
+      </button>
 
-        {/* CAUTION */}
-
-
-        
-        {/* /* {!userData?.isAccountVerified && (
-          <button
-            onClick={()=>gotopage()}
-            className={`block w-full text-left px-4 py-2 hover:bg-gray-200 text-sm ${
-              isLightMode ? "" : "text-black"
-            }`}
-          >
-            Verify Email
-          </button>
-        )} */ }
+      <div
+        className={`absolute right-0 mt-2 w-48 rounded-tech-lg border p-2 backdrop-blur-md shadow-xl transition-all duration-200 ${
+          showList ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"
+        } ${
+          isLightMode
+            ? "bg-white/95 border-gray-200"
+            : "bg-dark-surface/95 border-dark-border"
+        }`}
+      >
+        <div className={`px-3 py-2 border-b font-mono text-xs ${isLightMode ? "border-gray-100 text-gray-500" : "border-dark-border text-gray-400"}`}>
+          Signed in as <br />
+          <span className={`font-semibold ${isLightMode ? "text-gray-900" : "text-white"}`}>
+            {userName}
+          </span>
+        </div>
 
         {isLoggedIn && (
           <button
-            onClick={()=>logOutUser()}
-            className={`block w-full text-left px-4 py-2 hover:bg-gray-200 text-sm ${
-              isLightMode ? "" : "text-black"
+            onClick={logOutUser}
+            className={`w-full flex items-center gap-2 px-3 py-2 mt-1 rounded-tech font-mono text-xs text-left transition-colors ${
+              isLightMode
+                ? "text-red-600 hover:bg-red-50"
+                : "text-red-400 hover:bg-red-950/30"
             }`}
           >
-            Logout
+            <LogOut className="w-3.5 h-3.5" />
+            Sign Out
           </button>
         )}
       </div>
     </div>
   );
 };
+
 export default Profile;

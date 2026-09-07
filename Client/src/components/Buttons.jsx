@@ -1,36 +1,28 @@
 import React from "react";
-import { MdDarkMode } from "react-icons/md";
-import { MdLightMode } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 
-const Buttons = ({ isLightMode, setisLightMode }) => {
-  const Navigate = useNavigate();
+const Buttons = ({ isLightMode }) => {
+  const navigate = useNavigate();
 
   return (
-    <>
-      <div className="flex items-center gap-4">
-        <button
-          className={`text-gray-700 ${
-            isLightMode
-              ? "hover:text-blue-600 text-gray-700"
-              : "hover:text-green-600 text-white"
-          } transition hover:cursor-pointer`}
-          onClick={() => Navigate("/LoginPage")}
-        >
-          Login
-        </button>
-        <button
-          className={`text-white px-4 py-2 rounded-lg hover:scale-90 transform transition-all duration-300 active:scale-100 ${
-            isLightMode
-              ? "bg-blue-600 hover:bg-blue-700"
-              : "bg-green-600 hover:bg-green-700"
-          } transition hover:cursor-pointer`}
-          onClick={() => Navigate("/RegisterPage")}
-        >
-          Register
-        </button>
-      </div>
-    </>
+    <div className="flex items-center gap-3">
+      <button
+        className={`font-mono text-sm px-3.5 py-1.5 rounded-tech transition-colors duration-200 ${
+          isLightMode
+            ? "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            : "text-gray-300 hover:text-white hover:bg-dark-surface"
+        }`}
+        onClick={() => navigate("/LoginPage")}
+      >
+        Sign in
+      </button>
+      <button
+        className="font-mono text-sm px-4 py-1.5 rounded-tech bg-accent-violet text-white font-medium hover:bg-accent-violet/90 transition-all duration-200 shadow-sm active:scale-95"
+        onClick={() => navigate("/RegisterPage")}
+      >
+        Get Started
+      </button>
+    </div>
   );
 };
 

@@ -8,10 +8,13 @@ import { useNavigate } from "react-router-dom";
 import { FiPlay, FiCopy, FiTerminal, FiX, FiTrash2, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
 import axios from "axios";
 
-// Dynamically import Monaco Editor
+// Import Yjs, Monaco binding, and IndexedDB for CRDT Collaboration & Caching
+import * as Y from "yjs";
+import { MonacoBinding } from "y-monaco";
+import { IndexeddbPersistence } from "y-indexeddb";
+
 const MonacoEditor = React.lazy(() => import("@monaco-editor/react"));
 
-// Language ID mapping
 const LANGUAGE_MAP = {
   javascript: { language: "javascript", version: "*" },
   python: { language: "python", version: "*" },
@@ -28,7 +31,6 @@ const LANGUAGE_MAP = {
   typescript: { language: "typescript", version: "*" },
 };
 
-// Drag-to-resize constraints for the output panel (px)
 const OUTPUT_MIN_HEIGHT = 140;
 const OUTPUT_MAX_HEIGHT = 560;
 const OUTPUT_DEFAULT_HEIGHT = 260;
@@ -37,6 +39,12 @@ const CodeEditor = ({ socketRef, roomid, username, codeChange, setfileContent, i
   const editorRef = useRef(null);
   const navigate = useNavigate();
   const { addFileToRecycleBin, BACKEND_URL } = useAppContext();
+
+  // Yjs Refs for Real-Time Collaboration
+  const ydocRef = useRef(null);
+  const ytextRef = useRef(null);
+  const bindingRef = useRef(null);
+  const previousCodeRef = useRef(""); // To track code for the recycle bin
 
   // State management
   const [open, setopen] = useState(false);
@@ -58,117 +66,15 @@ const CodeEditor = ({ socketRef, roomid, username, codeChange, setfileContent, i
     setfileName("");
   };
 
-  // Execute code using backend API (no CORS issues) — sends code + stdin together
-  // const executeCode = async () => {
-  //   if (!code.trim()) {
-  //     toast.error("Please write some code first!");
-  //     return;
-  //   }
+  const TRACE_ENDPOINTS = {
+    python: "/api/execute/trace-py",
+    javascript: "/api/execute/trace-js",
+    java: "/api/execute/trace-java",
+    cpp: "/api/execute/trace-cpp",
+    sql: "/api/execute/trace-sql",
+  };
 
-  //   setIsExecuting(true);
-  //   try {
-  //     const languageConfig = LANGUAGE_MAP[language];
-  //     if (!languageConfig) {
-  //       toast.error("Language execution not supported");
-  //       setIsExecuting(false);
-  //       return;
-  //     }
-
-  //     const backendUrl = `${BACKEND_URL}/api/execute/execute`;
-
-  //     const response = await axios.post(
-  //       backendUrl,
-  //       {
-  //         language,
-  //         code,
-  //         stdin, // 
-  //       },
-  //       {
-  //         timeout: 35000,
-  //       }
-  //     );
-
-  //     if (response.data.status === 0) {
-  //       throw new Error(response.data.error || "Code execution failed");
-  //     }
-
-  //     const result = response.data.data;
-  //     setOutputHeight(OUTPUT_DEFAULT_HEIGHT);
-  //     setShowOutput(true);
-
-  //     // JDoodle response shape: { output, stdout, stderr, memory, cpuTime, statusCode, isExecuteSuccess }
-  //     const hasError = result.stderr && result.stderr.trim().length > 0;
-  //     const executeFailed = result.isExecuteSuccess === false;
-
-  //     if (hasError || executeFailed) {
-  //       setExecutionResult({
-  //         output: result.stdout || "",
-  //         error: result.stderr || "Execution failed",
-  //         statusId: 5,
-  //         statusName: "Runtime Error",
-  //         exitCode: result.statusCode ?? 1,
-  //         memory: result.memory,
-  //         cpuTime: result.cpuTime,
-  //       });
-  //       toast.error("Execution error!");
-  //     } else {
-  //       setExecutionResult({
-  //         output: result.stdout || "",
-  //         error: "",
-  //         statusId: 3,
-  //         statusName: "Success",
-  //         exitCode: result.statusCode ?? 0,
-  //         memory: result.memory,
-  //         cpuTime: result.cpuTime,
-  //       });
-  //       toast.success("Code executed successfully!");
-  //     }
-  //   } catch (error) {
-  //     console.error("❌ Execution error:", error);
-  //     console.error("Error response:", error.response?.data);
-
-  //     let errorMessage = "Error executing code";
-
-  //     if (error.response?.status === 404) {
-  //       errorMessage = "Backend endpoint not found (404). Check if backend server is running.";
-  //     } else if (error.response?.status === 500) {
-  //       errorMessage = error.response?.data?.error || "Backend server error (500)";
-  //     } else if (error.code === "ECONNREFUSED") {
-  //       errorMessage = "Cannot connect to backend. Is the server running?";
-  //     } else if (error.message) {
-  //       errorMessage = error.message;
-  //     }
-
-  //     toast.error(errorMessage);
-  //     setExecutionResult({
-  //       output: "",
-  //       error: errorMessage,
-  //       statusId: -1,
-  //       statusName: "Error",
-  //     });
-  //     setOutputHeight(OUTPUT_DEFAULT_HEIGHT);
-  //     setShowOutput(true);
-  //   } finally {
-  //     setIsExecuting(false);
-  //   }
-  // };
-  // //yaha banao tracer api 
-
-
-const TRACE_ENDPOINTS = {
-  python: "/api/execute/trace-py",
-  javascript: "/api/execute/trace-js",
-  java: "/api/execute/trace-java",
-  cpp: "/api/execute/trace-cpp",
-  sql: "/api/execute/trace-sql",        
-  // c: "/api/execute/trace-c",            //jab backend ready ho, bas uncomment + URL daal do
-  // rust: "/api/execute/trace-rust",
-  // ruby: "/api/execute/trace-ruby",
-  // typescript: "/api/execute/trace-ts",
-  
-};
-
-const executeCode = async () => {
+  const executeCode = async () => {
     if (!code.trim()) {
       toast.error("Please write some code first!");
       return;
@@ -185,13 +91,10 @@ const executeCode = async () => {
 
       const jdoodleUrl = `${BACKEND_URL}/api/execute/execute`;
       let jdoodleResponse;
-
-      // Agar is language ke liye trace endpoint config me hai, tabhi trace call hoga
       const tracePath = TRACE_ENDPOINTS[language];
 
       if (tracePath) {
         const traceUrl = `${BACKEND_URL}${tracePath}`;
-
         const jdoodlePromise = axios.post(jdoodleUrl, { language, code, stdin }, { timeout: 35000 });
         const tracePromise = axios.post(traceUrl, { language, code }, { timeout: 35000 });
 
@@ -208,13 +111,10 @@ const executeCode = async () => {
         } else {
           console.error(`${language} Tracer API Error:`, traceRes.reason || "No trace found");
         }
-
       } else {
-        // Trace endpoint nahi hai -> sirf normal JDoodle execute call
         jdoodleResponse = await axios.post(jdoodleUrl, { language, code, stdin }, { timeout: 35000 });
       }
 
-      // --- JDoodle Response Handling (same as pehle) ---
       if (jdoodleResponse.data.status === 0) {
         throw new Error(jdoodleResponse.data.error || "Code execution failed");
       }
@@ -277,7 +177,6 @@ const executeCode = async () => {
     }
   };
 
-
   const handleAddingToRecycleBin = async () => {
     if (fileName.trim() === "") {
       toast.error("File name cannot be empty");
@@ -302,15 +201,86 @@ const executeCode = async () => {
     }
   };
 
-  // Monaco Editor Handle
+  // ---------------------------------------------------------
+  // TIER 1 & 2: Local Cache (IndexedDB) & WebSockets
+  // ---------------------------------------------------------
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    ydocRef.current = new Y.Doc();
+    ytextRef.current = ydocRef.current.getText("monaco");
+
+    // TIER 1: Instantly load from browser cache on refresh
+    const indexeddbProvider = new IndexeddbPersistence(`tracesync-${roomid}`, ydocRef.current);
+
+    indexeddbProvider.on("synced", () => {
+      const cachedCode = ytextRef.current.toString();
+      setCode(cachedCode);
+      if (setfileContent) setfileContent(cachedCode);
+      previousCodeRef.current = cachedCode;
+    });
+
+    // TIER 2: Listen for local editor changes and broadcast binary update
+    ydocRef.current.on("update", (update, origin) => {
+      if (origin !== "remote") {
+        socketRef.current.emit("yjs-update", {
+          roomid,
+          username,
+          update: Array.from(update), 
+        });
+      }
+    });
+
+    // Listen for remote updates from other users and apply them mathematically
+    socketRef.current.on("yjs-update", ({ update, username: updaterName }) => {
+      if (update) {
+        Y.applyUpdate(ydocRef.current, new Uint8Array(update), "remote");
+        
+        const currentCode = ytextRef.current.toString();
+        
+        if (currentCode === "" && previousCodeRef.current.trim().length > 1) {
+          setWhoChangedCode(updaterName || "Another User");
+          setFileRecoveryCode(previousCodeRef.current);
+          setopen(true);
+        }
+        
+        previousCodeRef.current = currentCode;
+      }
+    });
+
+    return () => {
+      if (socketRef.current) socketRef.current.off("yjs-update");
+      if (bindingRef.current) bindingRef.current.destroy();
+      indexeddbProvider.destroy(); // Clean up IndexedDB connection
+      if (ydocRef.current) ydocRef.current.destroy();
+    };
+  }, [socketRef.current, roomid, username, setfileContent]);
+
+  // ---------------------------------------------------------
+  // TIER 3: The Debounce Trigger (Tells backend to save)
+  // ---------------------------------------------------------
+  useEffect(() => {
+    if (!code || !roomid) return;
+
+    // Set a timer. When you stop typing for 3 seconds, ask backend to save.
+    const saveTimer = setTimeout(() => {
+      if (socketRef.current) {
+        socketRef.current.emit("trigger-db-save", { 
+          roomid, 
+          codeContent: code 
+        });
+      }
+    }, 3000);
+
+    // Cleanup: If user types again before 3 seconds, cancel the timer
+    return () => clearTimeout(saveTimer);
+  }, [code, roomid, socketRef]);
+
   const handleEditorChange = (value) => {
     setCode(value || "");
     codeChange(value || "");
     setfileContent(value || "");
-
-    if (socketRef.current && value) {
-      socketRef.current.emit("code-change", { username, roomid, code: value });
-    }
+    previousCodeRef.current = value || "";
   };
 
   const handleEditorMount = (editor, monaco) => {
@@ -326,35 +296,16 @@ const executeCode = async () => {
       autoClosingBrackets: "always",
       autoClosingQuotes: "always",
     });
+
+    if (ydocRef.current && ytextRef.current) {
+      bindingRef.current = new MonacoBinding(
+        ytextRef.current,
+        editor.getModel(),
+        new Set([editor])
+      );
+    }
   };
 
-  // Socket events for real-time collaboration
-  useEffect(() => {
-    if (!socketRef.current) return;
-
-    socketRef.current.on("code-changed", ({ whoChanged, ChangerSocketId, code: newCode }) => {
-      if (newCode !== null) {
-        if (newCode === "") {
-          const preservedCode = editorRef.current?.getValue();
-          if (preservedCode && preservedCode.trim() !== "" && preservedCode.length > 1) {
-            setWhoChangedCode(whoChanged);
-            setFileRecoveryCode(preservedCode);
-            setopen(true);
-          }
-        }
-        setCode(newCode);
-        editorRef.current?.setValue(newCode);
-      }
-    });
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off("code-changed");
-      }
-    };
-  }, [socketRef.current]);
-
-  // Monaco theme update
   useEffect(() => {
     if (editorRef.current) {
       editorRef.current.updateOptions({
@@ -368,7 +319,6 @@ const executeCode = async () => {
     toast.success("Code copied to clipboard!");
   };
 
-  // Drag-to-resize handle for the output panel
   const handleResizeMouseDown = (e) => {
     e.preventDefault();
     isResizingRef.current = true;
@@ -379,7 +329,7 @@ const executeCode = async () => {
 
     const onMouseMove = (moveEvent) => {
       if (!isResizingRef.current) return;
-      const delta = startY - moveEvent.clientY; // drag up => taller output
+      const delta = startY - moveEvent.clientY;
       const newHeight = Math.min(OUTPUT_MAX_HEIGHT, Math.max(OUTPUT_MIN_HEIGHT, startHeight + delta));
       setOutputHeight(newHeight);
     };
@@ -499,11 +449,6 @@ const executeCode = async () => {
               <option value="cpp">C++</option>
               <option value="java">Java</option>
               <option value="sql">SQL</option>
-              {/* <option value="c">C</option> */}
-              {/* <option value="rust">Rust</option>
-              <option value="ruby">Ruby</option> */}
-              {/* <option value="typescript">TypeScript</option> */}
-              
             </select>
           </div>
 
@@ -532,7 +477,7 @@ const executeCode = async () => {
           </div>
         </div>
 
-        {/* Editor + Side panel (Input always visible, Output only after running) */}
+        {/* Editor + Side panel */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
           {/* Monaco Editor */}
           <div className="flex-1 min-h-[280px] lg:min-h-0 overflow-hidden">
@@ -573,13 +518,13 @@ const executeCode = async () => {
             </React.Suspense>
           </div>
 
-          {/* Side panel: Input (always exposed) + Output (only when run) */}
+          {/* Side panel */}
           <div
             className={`flex flex-col w-full lg:w-[380px] xl:w-[420px] flex-shrink-0 border-t lg:border-t-0 lg:border-l min-h-[260px] lg:min-h-0 ${
               isLightMode ? "bg-gray-50 border-gray-300" : "bg-[#1E1E1E] border-gray-700"
             }`}
           >
-            {/* Input section — visible while writing code */}
+            {/* Input section */}
             <div className={`flex flex-col min-h-[140px] ${showOutput ? "flex-shrink-0" : "flex-1"}`}>
               <div
                 className={`flex items-center justify-between px-3 py-2 border-b ${
@@ -611,7 +556,7 @@ const executeCode = async () => {
               <textarea
                 value={stdin}
                 onChange={(e) => setStdin(e.target.value)}
-                placeholder={"Type any input your program reads (e.g. via input() or cin)...\nLeave empty if not needed."}
+                placeholder={"Type any input your program reads...\nLeave empty if not needed."}
                 spellCheck={false}
                 className={`flex-1 w-full p-3 text-sm font-mono resize-none focus:outline-none ${
                   isLightMode
@@ -621,10 +566,9 @@ const executeCode = async () => {
               />
             </div>
 
-            {/* Output section — appears only after running, resizable + scrollable */}
+            {/* Output section */}
             {showOutput && (
               <>
-                {/* Drag handle */}
                 <div
                   onMouseDown={handleResizeMouseDown}
                   title="Drag to resize"
@@ -640,7 +584,6 @@ const executeCode = async () => {
                     isLightMode ? "border-gray-300 bg-white" : "border-gray-700 bg-[#1E1E1E]"
                   }`}
                 >
-                  {/* Sticky header */}
                   <div
                     className={`flex items-center justify-between px-3 py-2 border-b flex-shrink-0 sticky top-0 z-10 ${
                       isLightMode ? "border-gray-300 bg-gray-100" : "border-gray-700 bg-[#252526]"
@@ -680,7 +623,6 @@ const executeCode = async () => {
                     </button>
                   </div>
 
-                  {/* Scrollable content */}
                   <div className="flex-1 overflow-y-auto p-3 space-y-3">
                     {executionResult && (
                       <>

@@ -4,12 +4,12 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 //added 
-const myAPI = process.env.GOOGLE_GEMINI_KEY;
+const myAPI = process.env.GEMINI_API_KEY;
 const ai = new GoogleGenerativeAI(myAPI);
 
 const main = async (prompt) => {
   const model = ai.getGenerativeModel({
-    model: "gemini-2.5-flash-lite",
+    model: "gemini-2.5-flash",
     systemInstruction: `
   Here’s a solid system instruction for your AI code reviewer:
 

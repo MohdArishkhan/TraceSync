@@ -1,193 +1,144 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// data shape:
-// {
-//   entries: [{ key, value, bucket, isActive, isNew }, ...],
-//   bucketCount: number,          // how many buckets to show (default 8)
-//   activeKey: string | null,     // key being looked up / inserted right now
-// }
-
-const DEFAULT_BUCKETS = 8;
-
-// Simple visual hash — just for display (real hash is done by Python/JS)
-function displayHash(key, n) {
-  let h = 0;
-  const s = String(key);
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % n;
-  return h;
-}
+// HashMapEngine - Visualizes Hash Maps / Hash Tables / Dictionaries
+// data shape: { entries: [{key, value, hash}], activeKeys: [...], narration: "..." }
 
 export default function HashMapEngine({ data }) {
-  const entries     = data?.entries     ?? [];
-  const bucketCount = data?.bucketCount ?? DEFAULT_BUCKETS;
-  const activeKey   = data?.activeKey   ?? null;
-
-  // Group entries by bucket
-  const buckets = useMemo(() => {
-    const b = Array.from({ length: bucketCount }, () => []);
-    for (const entry of entries) {
-      const bi = entry.bucket ?? displayHash(entry.key, bucketCount);
-      if (bi >= 0 && bi < bucketCount) b[bi].push(entry);
-    }
-    return b;
-  }, [entries, bucketCount]);
-
-  // Active bucket index
-  const activeBucket = activeKey != null
-    ? (entries.find(e => e.key === activeKey)?.bucket ?? displayHash(activeKey, bucketCount))
-    : null;
+  const entries = data?.entries ?? data?.array ?? [];
+  const activeKeys = data?.activeKeys ?? data?.activeIndices ?? [];
+  const narration = data?.narration ?? null;
 
   if (!entries.length) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full text-slate-500 gap-2">
-        <div className="flex gap-1">
-          {[0,1,2,3].map(i => (
-            <div key={i} className="w-8 h-14 rounded border border-slate-700 bg-slate-800/50"/>
-          ))}
-        </div>
-        <span className="text-xs font-mono">HashMap is empty</span>
+      <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono">
+        Waiting for hash map data…
       </div>
     );
   }
 
-  return (
-    <div className="flex flex-col w-full h-full overflow-auto p-4 gap-3">
+  const activeSet = new Set(activeKeys.map(String));
 
+  // Convert array format to key-value pairs if needed
+  const normalizedEntries = entries.map((item, idx) => {
+    if (typeof item === 'object' && item !== null && 'key' in item) {
+      return item;
+    }
+    // If it's a simple array, treat index as key
+    return { key: idx, value: item?.value ?? item, hash: idx % 7 };
+  });
+
+  // Group by hash buckets for visual organization
+  const maxBuckets = Math.min(8, Math.max(4, Math.ceil(normalizedEntries.length / 3)));
+  const buckets = Array.from({ length: maxBuckets }, () => []);
+
+  normalizedEntries.forEach((entry, idx) => {
+    const bucketIdx = entry.hash !== undefined ? entry.hash % maxBuckets : idx % maxBuckets;
+    buckets[bucketIdx].push({ ...entry, originalIndex: idx });
+  });
+
+  return (
+    <div className="flex flex-col w-full h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 flex-shrink-0">
-        <span className="text-[10px] font-mono text-slate-500">
-          buckets:&nbsp;<span className="text-indigo-300">{bucketCount}</span>
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-slate-700/30 bg-slate-950/50">
+        <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-mono text-emerald-400 tracking-widest uppercase">
+          Hash Map · {normalizedEntries.length} entries
         </span>
-        <span className="text-[10px] font-mono text-slate-500">
-          entries:&nbsp;<span className="text-indigo-300">{entries.length}</span>
-        </span>
-        {activeKey != null && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-[10px] font-mono text-yellow-400 flex items-center gap-1"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"/>
-            lookup: <span className="text-white ml-1">"{activeKey}"</span>
-            &nbsp;→ bucket [{activeBucket}]
-          </motion.span>
+        {data?.statusText && (
+          <span className="text-[11px] font-mono text-amber-300">{data.statusText}</span>
         )}
       </div>
 
-      {/* Active key → bucket arrow (top level) */}
-      {activeKey != null && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2 text-[10px] font-mono px-3 py-1.5 rounded-lg bg-yellow-400/5 border border-yellow-400/20 flex-shrink-0"
-        >
-          <span className="text-slate-400">hash(</span>
-          <span className="text-yellow-300">"{activeKey}"</span>
-          <span className="text-slate-400">)</span>
-          <span className="text-slate-500">%{bucketCount}</span>
-          <span className="text-slate-400">=</span>
-          <span className="text-indigo-300 font-bold">{activeBucket}</span>
-        </motion.div>
-      )}
-
-      {/* Buckets grid */}
-      <div
-        className="flex-1 grid gap-2 overflow-auto"
-        style={{
-          gridTemplateColumns: `repeat(${Math.min(bucketCount, 4)}, minmax(0, 1fr))`,
-        }}
-      >
-        {buckets.map((bucketEntries, bi) => {
-          const isActiveBucket = bi === activeBucket;
-          return (
-            <div
-              key={`bucket-${bi}`}
-              className={`flex flex-col rounded-xl border transition-all duration-300 overflow-hidden ${
-                isActiveBucket
-                  ? 'border-yellow-400/50 shadow-[0_0_12px_rgba(250,204,21,0.15)]'
-                  : 'border-slate-700/60'
-              }`}
+      {/* Bucket Visualization */}
+      <div className="flex-1 overflow-auto p-4">
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          {buckets.map((bucket, bucketIdx) => (
+            <motion.div
+              key={bucketIdx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: bucketIdx * 0.05 }}
+              className="flex flex-col"
             >
-              {/* Bucket header */}
-              <div
-                className={`flex items-center justify-between px-2.5 py-1.5 border-b text-[10px] font-mono ${
-                  isActiveBucket
-                    ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'
-                    : 'bg-slate-800/80 border-slate-700/50 text-slate-500'
-                }`}
-              >
-                <span>[{bi}]</span>
-                {bucketEntries.length > 0 && (
-                  <span className={isActiveBucket ? 'text-yellow-300' : 'text-slate-600'}>
-                    {bucketEntries.length}
-                  </span>
-                )}
+              {/* Bucket Header */}
+              <div className="flex items-center justify-between px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-t-lg">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+                  Bucket {bucketIdx}
+                </span>
+                <span className="text-[9px] font-mono text-slate-600">
+                  {bucket.length} item{bucket.length !== 1 ? 's' : ''}
+                </span>
               </div>
 
-              {/* Entries (chain) */}
-              <div className="flex flex-col bg-slate-900/40 flex-1 min-h-[56px] p-1.5 gap-1">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {bucketEntries.map((entry, ei) => {
-                    const isActive = entry.isActive || entry.key === activeKey;
-                    const isNew    = entry.isNew;
-                    return (
-                      <motion.div
-                        key={entry.key ?? `entry-${bi}-${ei}`}
-                        layout
-                        initial={{ opacity: 0, scale: 0.85, y: -8 }}
-                        animate={{ opacity: 1,  scale: isActive ? 1.04 : 1, y: 0 }}
-                        exit={{    opacity: 0,  scale: 0.85, y: 8 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-                        className={`
-                          flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-mono
-                          border transition-colors duration-200
-                          ${isActive
-                            ? 'bg-indigo-500/20 border-indigo-400/50 text-indigo-200'
-                            : isNew
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
-                              : 'bg-slate-800/60 border-slate-700/40 text-slate-300'}
-                        `}
-                      >
-                        {/* Collision chain indicator */}
-                        {ei > 0 && (
-                          <span className="text-slate-600 flex-shrink-0">↳</span>
-                        )}
-                        <span className={`flex-shrink-0 ${isActive ? 'text-indigo-300' : 'text-slate-400'}`}>
-                          {String(entry.key)}
-                        </span>
-                        <span className="text-slate-600 flex-shrink-0">:</span>
-                        <span className={`truncate ${isActive ? 'text-white' : 'text-slate-200'}`}>
-                          {String(entry.value)}
-                        </span>
-                        {isActive && (
-                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"/>
-                        )}
-                        {isNew && !isActive && (
-                          <span className="ml-auto text-[8px] text-emerald-400 flex-shrink-0">new</span>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+              {/* Bucket Entries */}
+              <div className="flex flex-col gap-1.5 p-2 bg-slate-900/30 border-x border-b border-slate-700/50 rounded-b-lg min-h-[80px]">
+                <AnimatePresence mode="popLayout">
+                  {bucket.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-[9px] font-mono text-slate-600 italic">
+                      empty
+                    </div>
+                  ) : (
+                    bucket.map((entry) => {
+                      const isActive = activeSet.has(String(entry.key)) || activeSet.has(String(entry.originalIndex));
+                      return (
+                        <motion.div
+                          key={entry.key}
+                          layout
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{
+                            opacity: 1,
+                            scale: isActive ? 1.02 : 1,
+                            background: isActive ? '#065f46' : '#1e293b',
+                            borderColor: isActive ? '#10b981' : '#334155'
+                          }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-center justify-between px-2.5 py-2 rounded-md border"
+                          style={{
+                            boxShadow: isActive ? '0 0 12px rgba(16, 185, 129, 0.3)' : 'none'
+                          }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="text-[11px] font-mono font-bold text-cyan-400 truncate">
+                              {String(entry.key)}
+                            </span>
+                            <span className="text-[10px] text-slate-600">→</span>
+                            <span className="text-[11px] font-mono font-semibold text-emerald-300 truncate">
+                              {String(entry.value)}
+                            </span>
+                          </div>
+                          {entry.hash !== undefined && (
+                            <span className="text-[8px] font-mono text-slate-600 ml-2 flex-shrink-0">
+                              #{entry.hash}
+                            </span>
+                          )}
+                        </motion.div>
+                      );
+                    })
+                  )}
                 </AnimatePresence>
-
-                {/* Empty slot */}
-                {bucketEntries.length === 0 && (
-                  <div className="flex-1 flex items-center justify-center text-slate-700 text-[10px] font-mono">
-                    ∅
-                  </div>
-                )}
               </div>
-            </div>
-          );
-        })}
+            </motion.div>
+          ))}
+        </div>
       </div>
 
-      {/* Collision legend */}
-      {buckets.some(b => b.length > 1) && (
-        <div className="flex-shrink-0 text-[9px] font-mono text-slate-600 flex items-center gap-1.5">
-          <span className="text-slate-500">↳</span>
-          collision chain (separate chaining)
+      {/* Stats Footer */}
+      <div className="flex-shrink-0 flex items-center gap-4 px-4 py-2 border-t border-slate-700/25 bg-slate-950/40">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm bg-emerald-900/50 border border-emerald-500" />
+          <span className="text-[9px] font-mono text-slate-500">Active entry</span>
+        </div>
+        <div className="text-[9px] font-mono text-slate-600">
+          Load factor: {(normalizedEntries.length / maxBuckets).toFixed(2)}
+        </div>
+      </div>
+
+      {/* Narration */}
+      {narration && (
+        <div className="flex-shrink-0 flex items-start gap-2.5 px-5 py-2 border-t border-amber-500/15 bg-amber-500/5">
+          <span className="text-amber-500/60 text-sm mt-0.5 flex-shrink-0">✎</span>
+          <span className="text-[12.5px] font-medium text-amber-200/90 leading-snug">{narration}</span>
         </div>
       )}
     </div>

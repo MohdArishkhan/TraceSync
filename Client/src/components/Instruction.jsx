@@ -1,162 +1,159 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  MdNavigateNext,
-  MdNavigateBefore,
-  MdClose,
-} from "react-icons/md";
-import {
-  FaUserCircle,
-  FaSignInAlt,
-  FaDoorOpen,
-  FaPhoneAlt,
-  FaPhoneSlash,
-  FaVideo,
-  FaComments,
-  FaRocket,
-} from "react-icons/fa";
+  ChevronRight,
+  ChevronLeft,
+  X,
+  UserCheck,
+  DoorOpen,
+  PhoneCall,
+  PhoneForwarded,
+  Video,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-// 🌈 Guide steps with emojis and enhanced text
 const guideSteps = [
   {
-    title: "Welcome to CodeDoodle 🚀",
-    icon: <FaUserCircle size={40} />,
-    content:
-      "Start your journey by signing up and building your developer profile. Connect, code, and collaborate in real-time!",
-    bg: "bg-gradient-to-br from-violet-700 via-purple-800 to-indigo-900",
-    overlayBg: "bg-gradient-to-br from-violet-700 via-purple-800 to-indigo-9000"
+    title: "1. Create Your Profile",
+    icon: UserCheck,
+    content: "Start by logging in or registering. Your developer profile will persist your saved files, themes, and room history across sessions.",
+    tag: "AUTHENTICATION",
   },
   {
-    title: "Create or Join a Room 🔗",
-    icon: <FaDoorOpen size={40} />,
-    content:
-      "Click 'Create Room' to host a session or use a room code to join a collaborative coding space instantly.",
-    bg: "bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400",
-    overlayBg: "bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400"
+    title: "2. Create or Join Room",
+    icon: DoorOpen,
+    content: "Generate a unique room UUID or paste an existing room code from a teammate to jump into an active collaborative IDE instance.",
+    tag: "ROOM SYNC",
   },
   {
-    title: "Send a Call 📞",
-    icon: <FaPhoneAlt size={40} />,
-    content:
-      "Initiate a call by clicking 'Call User' to connect with your teammate face-to-face.",
-    bg: "bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-500",
-    overlayBg: "bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-500"
+    title: "3. Start Integrated Call",
+    icon: PhoneCall,
+    content: "Initiate peer-to-peer WebRTC voice or video calls directly beside your code. No Zoom or external links needed.",
+    tag: "WEBRTC CALL",
   },
   {
-    title: "Accept or Decline 📲",
-    icon: <FaPhoneSlash size={40} />,
-    content:
-      "When someone calls you, you’ll receive a notification. You can choose to accept or decline the call.",
-    bg: "bg-gradient-to-br from-pink-600 via-rose-500 to-red-500",
-    overlayBg: "bg-gradient-to-br from-pink-600 via-rose-500 to-red-500"
+    title: "4. Live Screen & Video",
+    icon: Video,
+    content: "Share your camera or stream high-FPS screen captures directly to connected room peers with crystal clarity.",
+    tag: "SCREEN STREAM",
   },
   {
-    title: "Video Chat 🎥",
-    icon: <FaVideo size={40} />,
-    content:
-      "Enable your camera to have live face-to-face video chats while you code together in the room.",
-    bg: "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500",
-    overlayBg: "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"
+    title: "5. Real-Time Chat & AI",
+    icon: MessageSquare,
+    content: "Use the built-in desktop chat and AI reviewer to ask algorithmic questions, analyze code diffs, and brainstorm ideas.",
+    tag: "AI & CHAT",
   },
   {
-    title: "Real-Time Chat 💬",
-    icon: <FaComments size={40} />,
-    content:
-      "Use the built-in chat to communicate effectively with your peers without leaving the editor.",
-    bg: "bg-gradient-to-br from-teal-400 via-cyan-400 to-blue-400",
-    overlayBg: "bg-gradient-to-br from-teal-400 via-cyan-400 to-blue-400"
-  },
-  {
-    title: "Try it Now! ⚡",
-    icon: <FaRocket size={40} />,
-    content:
-      "You're all set! Dive in and experience collaborative coding and real-time communication with CodeDoodle.",
-    bg: "bg-gradient-to-br from-gray-800 via-gray-900 to-black",
-    overlayBg: "bg-gradient-to-br from-gray-800 via-gray-900 to-black",
-   action: { label: "Try it now !", link: "/LobbyPage" }
+    title: "6. Ready to Code!",
+    icon: Sparkles,
+    content: "You're all set! Dive in and experience low-latency multiplayer coding and real-time communication with CodeDoodle.",
+    tag: "READY",
+    action: { label: "Enter Room Now", link: "/RoomPage" },
   },
 ];
 
-
-const Instruction = () => {
+const Instruction = ({ isLightMode }) => {
   const [step, setStep] = useState(0);
   const [isOpen, setIsOpen] = useState(true);
+  const navigate = useNavigate();
 
   const nextStep = () => step < guideSteps.length - 1 && setStep(step + 1);
   const prevStep = () => step > 0 && setStep(step - 1);
-  const closeGuide = () => setIsOpen(false);
+  const closeGuide = () => {
+    setIsOpen(false);
+    navigate(-1);
+  };
+
+  const current = guideSteps[step];
+  const IconComponent = current.icon;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className={`fixed inset-0 z-50 flex items-center justify-center px-4 transition-all duration-500 ${guideSteps[step].overlayBg}`}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            key={step} // Ensures background transition on step change
-            className={`w-full max-w-xl rounded-2xl p-6 relative text-center shadow-[0_0_30px_rgba(255,255,255,0.2)] text-white ring-2 ring-white/10 transition-all duration-500 ${guideSteps[step].bg}`}
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
+            key={step}
+            className="w-full max-w-lg rounded-tech-lg p-6 sm:p-8 relative text-center border backdrop-blur-xl shadow-2xl bg-dark-surface/95 border-dark-border text-white"
+            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.95, y: -20, opacity: 0 }}
+            transition={{ duration: 0.3 }}
           >
-            {/* ❌ Close Button */}
+            {/* Close Button */}
             <button
               onClick={closeGuide}
-              className="absolute top-4 right-4 text-white/70 hover:text-red-400 transition"
+              className="absolute top-4 right-4 p-1.5 rounded-tech text-gray-400 hover:text-white hover:bg-dark-bg transition"
+              aria-label="Close guide"
             >
-              <MdClose size={24} />
+              <X className="w-4 h-4" />
             </button>
 
-            {/* 🎯 Icon */}
-            <div className="text-4xl mb-3 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
-              {guideSteps[step].icon}
+            {/* Tag Badge */}
+            <div className="inline-block mb-4">
+              <span className="font-mono text-[10px] tracking-widest px-2.5 py-1 rounded border text-accent-violet border-accent-violet/30 bg-accent-violet/10 font-bold">
+                {current.tag}
+              </span>
             </div>
 
-            {/* 🧠 Title + Content */}
-            <h2 className="text-2xl font-bold mb-2 tracking-wide">
-              {guideSteps[step].title}
+            {/* Icon */}
+            <div className="w-16 h-16 mx-auto mb-5 rounded-tech flex items-center justify-center border bg-dark-bg/80 border-dark-border text-accent-violet shadow-lg">
+              <IconComponent className="w-8 h-8" />
+            </div>
+
+            {/* Title & Content */}
+            <h2 className="font-mono text-xl sm:text-2xl font-bold mb-3 tracking-tight text-white">
+              {current.title}
             </h2>
-            <p className="text-white/90 text-base mb-5 leading-relaxed">
-              {guideSteps[step].content}
+            <p className="text-gray-300 text-sm leading-relaxed mb-6 font-sans">
+              {current.content}
             </p>
 
-            {/* 🚀 Action Link */}
-            {guideSteps[step].action && (
+            {/* Action button if last step */}
+            {current.action && (
               <button
-                
-              
-                onClick={() => window.open(`${guideSteps[step].action.link}`, "_blank")}
-                className="inline-block bg-white text-black px-6 py-2 rounded-full font-semibold shadow-lg hover:bg-gray-100 transition mb-5"
+                onClick={() => navigate(current.action.link)}
+                className="mb-6 px-6 py-2.5 rounded-tech font-mono text-xs font-semibold bg-accent-violet hover:bg-accent-violet/90 text-white shadow-lg shadow-accent-violet/30 transition"
               >
-                {guideSteps[step].action.label}
+                {current.action.label}
               </button>
             )}
 
-            {/* ⬅️➡️ Navigation Controls */}
-            <div className="flex justify-between items-center mt-2">
+            {/* Progress Dots & Navigation */}
+            <div className="flex justify-between items-center pt-4 border-t border-dark-border">
               <button
                 onClick={prevStep}
                 disabled={step === 0}
-                className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-md text-sm hover:bg-white/20 transition disabled:opacity-30"
+                className="flex items-center gap-1 font-mono text-xs px-3 py-1.5 rounded border border-dark-border bg-dark-bg text-gray-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
               >
-                <MdNavigateBefore className="inline-block mr-1" />
-                Back
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Back</span>
               </button>
 
-              <span className="text-sm text-white/80 font-mono">
-                Step {step + 1} of {guideSteps.length}
-              </span>
+              <div className="flex items-center gap-1.5">
+                {guideSteps.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setStep(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-200 ${
+                      idx === step ? "w-6 bg-accent-violet" : "w-1.5 bg-dark-border"
+                    }`}
+                  />
+                ))}
+              </div>
 
               <button
-                onClick={nextStep}
-                disabled={step === guideSteps.length - 1}
-                className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-md text-sm hover:bg-white/20 transition disabled:opacity-30"
+                onClick={step === guideSteps.length - 1 ? closeGuide : nextStep}
+                className="flex items-center gap-1 font-mono text-xs px-3 py-1.5 rounded border border-accent-violet/40 bg-accent-violet text-white hover:bg-accent-violet/90 transition"
               >
-                Next <MdNavigateNext className="inline-block ml-1" />
+                <span>{step === guideSteps.length - 1 ? "Finish" : "Next"}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </motion.div>
