@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import "../App.css";
 
-const RightPanel = ({ isLightMode, setisLightMode, feedback, setFeedback }) => {
+const RightPanel = ({ isLightMode, feedback }) => {
   const scrollRef = useRef();
 
   const cleanedFeedback = feedback
@@ -22,42 +23,34 @@ const RightPanel = ({ isLightMode, setisLightMode, feedback, setFeedback }) => {
   }, [cleanedFeedback]);
 
   return (
-    <div
+    <motion.div
       ref={scrollRef}
-      className={`${
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+      className={`h-1/2 md:h-full w-full md:w-1/2 rounded-xl overflow-y-auto p-5 md:p-8 border shadow-sm transition-colors duration-300 ${
         isLightMode
-          ? "bg-white text-gray-800 border-2 border-blue-300"
-          : "bg-zinc-900 text-green-200 border-2 border-green-400"
-      } w-full md:w-1/2 h-[70vh] hide-scrollbar md:h-full rounded-lg overflow-y-auto scrollbar-none p-4 md:p-6 shadow-lg transition-all duration-300`}
+          ? "bg-white text-gray-700 border-gray-200"
+          : "bg-zinc-900 text-gray-300 border-zinc-800"
+      }`}
     >
-      <div className="prose dark:prose-invert max-w-none prose-pre:bg-gray-900 prose-pre:text-white prose-pre:rounded-xl prose-code:text-pink-500">
+      <div className={`prose max-w-none ${isLightMode ? "prose-slate" : "prose-invert"} 
+        prose-pre:border prose-pre:border-zinc-800 prose-pre:bg-zinc-950 prose-pre:text-zinc-300
+        prose-code:text-accent-violet prose-code:bg-zinc-100 dark:prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
+      `}>
         <ReactMarkdown
           components={{
-            h1: ({ node, ...props }) => (
-              <h1 className="mt-6 mb-2 text-2xl font-bold" {...props} />
-            ),
-            h2: ({ node, ...props }) => (
-              <h2 className="mt-6 mb-2 text-xl font-semibold" {...props} />
-            ),
-            h3: ({ node, ...props }) => (
-              <h3 className="mt-6 mb-2 text-lg font-semibold" {...props} />
-            ),
-            p: ({ node, ...props }) => <p className="mb-3" {...props} />,
-            ul: ({ node, ...props }) => (
-              <ul className="mb-4 list-disc list-inside" {...props} />
-            ),
-            code: ({ node, ...props }) => (
-              <code className="bg-gray-800 hide-scrollbar text-white px-2 py-1 rounded-md" {...props} />
-            ),
-            pre: ({ node, ...props }) => (
-              <pre className="bg-gray-900 hide-scrollbar text-white p-4 rounded-lg overflow-x-auto my-4" {...props} />
-            ),
+            h1: ({ node, ...props }) => <h1 className="text-2xl font-bold tracking-tight mb-4" {...props} />,
+            h2: ({ node, ...props }) => <h2 className="text-xl font-semibold tracking-tight mt-6 mb-3" {...props} />,
+            h3: ({ node, ...props }) => <h3 className="text-lg font-medium tracking-tight mt-6 mb-2" {...props} />,
+            p: ({ node, ...props }) => <p className="leading-relaxed mb-4 text-sm md:text-base" {...props} />,
+            ul: ({ node, ...props }) => <ul className="mb-4 space-y-1 list-disc list-outside ml-5 text-sm md:text-base" {...props} />,
           }}
         >
           {cleanedFeedback}
         </ReactMarkdown>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

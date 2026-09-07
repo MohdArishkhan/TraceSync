@@ -13,17 +13,20 @@ import {
 import { initSocket } from "../socket";
 import ShareCircleBold from "../assets/ShareCircleBold";
 import { useFileData } from "../Context/FileDataContext";
-import axios from "axios";
 import { useAppContext } from "../Context/AppContext";
 import { RxSpeakerLoud } from "react-icons/rx";
+import { createDocument } from "../lib/documents";
+import { useDocumentAutosave } from "../hooks/useDocumentAutosave";
 import "../App.css";
 
+const MotionDiv = motion.div;
+
 function EditorPage({ isLightMode }) {
-  const { BACKEND_URL } = useAppContext();
+  const { userData } = useAppContext();
+  const { fileList, setFileList } = useFileData();
   const [isExist, setisExist] = useState(false);
   const [isDownload, setisDownload] = useState(false);
   // const { fileList, setFileList } = useFileData();
-  const { userData } = useAppContext();
   const [fileName, setfileName] = useState("");
   const { roomid } = useParams();
   const location = useLocation();
@@ -32,8 +35,18 @@ function EditorPage({ isLightMode }) {
   const [userlist, setUserlist] = useState([]);
   const code = useRef(null);
   const [fileContent, setfileContent] = useState("");
+  const [documentId, setDocumentId] = useState(null);
+  const [documentRevision, setDocumentRevision] = useState(0);
   const [changerName,setchangerName] = useState("");
   const timerRef= useRef(null);
+
+  const { status: saveStatus } = useDocumentAutosave({
+    documentId,
+    revision: documentRevision,
+    codeContent: fileContent,
+    visualState: {},
+    enabled: Boolean(documentId && fileContent),
+  });
 
   function codeChange(myCode) {
     code.current = myCode;
@@ -53,51 +66,58 @@ function EditorPage({ isLightMode }) {
     window.speechSynthesis.speak(utterance);
   }
 
-  function handleError(err) {
+  function handleError() {
     // console.error(`Socket error: ${err}`);
     toast.error("Socket not connected!");
     navigate("/homePage");
   }
 
-  function saveTheFile() {
-    const FileDoc = {
-      fileName: fileName,
-      fileContent: fileContent,
-    };
-
-    const allFiles = userData.allFiles;
-
-    // console.log("My all Files are : ");
-    // console.log(allFiles);
-
-    const isThere = allFiles.find(
-      (currFile) => currFile.fileName.toLowerCase() === fileName.toLowerCase()
-    );
-
-    if (isThere) {
-      setisExist(true);
+  async function saveTheFile() {
+    const normalizedName = fileName.trim();
+    if (!normalizedName || !fileContent.trim()) {
+      toast.error("Add a file name and code before saving.");
       return;
-    } else {
-      setisExist(false);
     }
 
-    axios
-      .post(`${BACKEND_URL}/api/file/addFile`, FileDoc, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        if (res.data.status === 1) {
-          toast.success("File Saved Successfully");
-        } else {
-          toast.error("File Not Saved");
-        }
-      })
-      .catch((err) => {
-        // console.log(err);
-        toast.error("Error Saving File");
-      });
+    const isThere = fileList.find(
+      (currFile) => currFile.fileName.toLowerCase() === normalizedName.toLowerCase()
+    );
 
-    setfileContent("");
+    if (isThere && isThere.id !== documentId) {
+      setisExist(true);
+      return;
+    }
+    setisExist(false);
+
+    try {
+      const created = await createDocument({
+        projectId: userData?.projectId,
+        path: normalizedName,
+        name: normalizedName,
+        kind: "mixed",
+        language: "javascript",
+        codeContent: fileContent,
+        visualState: {}
+      });
+      const saved = created.document;
+      setDocumentId(saved.id);
+      setDocumentRevision(saved.revision);
+      setFileList((files) => [...files, {
+        id: saved.id,
+        fileName: saved.name,
+        fileContent: saved.code_content,
+        visualState: saved.visual_state,
+        revision: saved.revision,
+        language: saved.language,
+        dateCreated: saved.created_at,
+        updatedAt: saved.updated_at
+      }]);
+      toast.success("File saved to Supabase");
+      setisDownload(false);
+      setfileName("");
+    } catch (error) {
+      toast.error(error.message || "Error saving file");
+    }
   }
 
   useEffect(() => {
@@ -113,8 +133,8 @@ function EditorPage({ isLightMode }) {
           roomid,
           username: location.state?.username,
         });
-      } catch (err) {
-        console.error("Socket initialization failed:", err);
+      } catch {
+        console.error("Socket initialization failed");
       }
 
       socketRef.current.on("joined", ({ clients, socketid, username }) => {
@@ -199,7 +219,7 @@ function EditorPage({ isLightMode }) {
                 isLightMode ? "text-blue-600" : ""
               } tracking-wide `}
             >
-              CodeDoodle
+              TraceSync
             </span>
           </div>
 
@@ -288,10 +308,15 @@ function EditorPage({ isLightMode }) {
             >
               Download Work
             </button>
+            {documentId && (
+              <span className="text-xs text-gray-300 self-center px-2">
+                {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved" : saveStatus}
+              </span>
+            )}
           </div>
 
           {isDownload && (
-            <motion.div 
+            <MotionDiv 
               initial={{ opacity: 0, y: -30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
@@ -365,7 +390,7 @@ function EditorPage({ isLightMode }) {
                   View All Folders
                 </button>
               </div>
-            </motion.div>
+            </MotionDiv>
           )}
 
           <CodeEditor

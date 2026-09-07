@@ -1,91 +1,75 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../App.css";
-import { useFileData } from "../Context/FileDataContext";
-import { useAppContext } from "../Context/AppContext";
-import axios from "axios";
-import { useEffect } from "react";
-import { MdDelete } from "react-icons/md";
-import { Toaster, toast } from "react-hot-toast";
-import { FaCopy, FaFile } from "react-icons/fa";
+import { toast, Toaster } from "react-hot-toast";
+import { Copy, FileCode, Trash2, X, Check } from "lucide-react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
+import { useFileData } from "../Context/FileDataContext";
+import { deleteDocument } from "../lib/documents";
 
 const StrapLayout = ({ isLightMode }) => {
   const [fileList, setFileList] = useState([]);
-  const [expandedIndex, setExpandedIndex] = useState(null); // <===== step-1
-  const [isOpen, setisOpen] = useState(false);
-  const [ToBeDeleted, setToBeDeleted] = useState("");
-  const { BACKEND_URL, userData, getUserData } = useAppContext();
+  const [expandedIndex, setExpandedIndex] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [toBeDeleted, setToBeDeleted] = useState("");
+  const { fileList: durableFiles, setFileList: setDurableFiles } = useFileData();
   const [confirm, setConfirm] = useState("");
-
-  // console.log(fileList);
+  const [copied, setCopied] = useState(false);
 
   const toggleExpand = (index) => {
-    //   <========= step-2
     setExpandedIndex(index);
+    setCopied(false);
   };
 
-  function copyKar() {
+  const copyContent = () => {
+    setCopied(true);
     toast.success("Copied to Clipboard");
-  }
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   async function handleDeleteOneFile(fileName) {
-    // console.log("Deleting file:", fileName);
-    await axios
-      .post(
-        `${BACKEND_URL}/api/file/deleteOneFile`,
-        { fileName },
-        {
-          withCredentials: true,
-        }
-      )
-      .then((res) => {
-        // console.log(res.data);
-        if (res.data.status === 1) {
-          setFileList((prevList) =>
-            prevList.filter((item) => item.fileName !== fileName)
-          );
-          getUserData();
-          toast.success("File deleted successfully");
-        } else {
-          // console.log(res.data.message);
-          toast.error("File not deleted");
-        }
-      });
+    try {
+      const target = durableFiles.find((item) => item.fileName === fileName);
+      if (!target?.id) throw new Error("Document not found");
+      await deleteDocument(target.id);
+      if (target.id) {
+        setFileList((prevList) =>
+          prevList.filter((item) => item.fileName !== fileName)
+        );
+        setDurableFiles((files) => files.filter((item) => item.id !== target.id));
+        toast.success("File deleted successfully");
+      }
+    } catch {
+      toast.error("Failed to delete file");
+    }
   }
 
-  function handleDelete(fileName) {
-    setisOpen(true);
-    // console.log("Deleting file:", fileName);
+  function handleDelete(e, fileName) {
+    e.stopPropagation();
+    setIsOpen(true);
     setToBeDeleted(fileName);
   }
 
   function checkValidity() {
-    const realQuery = `delete ${ToBeDeleted.toLowerCase()}`;
-    // console.log("Real query is : ", realQuery);
-    // console.log("Confirm is : ", confirm);
+    const realQuery = `delete ${toBeDeleted.toLowerCase()}`;
     if (confirm.toLowerCase() === realQuery) {
-      handleDeleteOneFile(ToBeDeleted);
-      setisOpen(false);
+      handleDeleteOneFile(toBeDeleted);
+      setIsOpen(false);
       setConfirm("");
     } else {
-      toast.error(`Please type 'delete '${ToBeDeleted}'`);
+      toast.error(`Please type 'delete ${toBeDeleted}'`);
     }
   }
 
   useEffect(() => {
-    // console.log("Fetching file data...");
-    // console.log(userData?.allFiles);
     setFileList([
-      ...(userData?.allFiles?.map((file) => ({
-        fileName: file.fileName,
-        fileContent: file.fileContent,
+      ...(durableFiles?.map((file) => ({
+        ...file,
         dateCreated: formatDate(file.dateCreated),
       })) || []),
     ]);
-  }, [userData]);
+  }, [durableFiles]);
 
   const closeOverlay = () => {
-    //    <============= step-3
     setExpandedIndex(null);
   };
 
@@ -100,141 +84,157 @@ const StrapLayout = ({ isLightMode }) => {
     return new Date(dateString).toLocaleString("en-US", options);
   };
 
-  function closeFile() {
-    setisOpen(false);
-    // console.log("Closing");
-    setConfirm("");
-  }
-
   return (
     <>
-      <Toaster />
-      <div
-        className={`${
-          isLightMode ? "bg-white" : "bg-black"
-        } h-5/6 flex justify-center overflow-auto hide-scrollbar py-6 z-0`}
-      >
-        <div className="transparent w-full lg:w-4/5 flex flex-col gap-4 lg:gap-6 p-2 lg:p-4 rounded-xl h-fit hide-scrollbar">
-          {fileList &&
-            fileList.map((item, index) => (
-              <div
-                key={index}
-                className={`${
-                  isLightMode
-                    ? "bg-white hover:border-slate-400 hover:bg-slate-100"
-                    : "bg-gray-950 hover:border-green-400 hover:bg-gray-900"
-                } border border-white cursor-pointer hover:border-1  transform duration-300 p-3 lg:p-6 rounded-lg text-white shadow-md flex items-center gap-4 hide-scrollbar justify-between`}
-              >
-                <div
-                  className="flex flex-row gap-8 items-center w-full justify-start"
-                  onClick={() => toggleExpand(index)}
-                >
-                  <FaFile
-                    className={`${
-                      isLightMode ? "text-slate-500" : ""
-                    } text-sm lg:text-3xl`}
-                  />
-                  <div>
-                    <div
-                      className={`font-bold ${
-                        isLightMode ? "text-slate-700" : ""
-                      } text-sm lg:text-xl`}
-                    >
-                      {item.fileName}
-                    </div>
-                    <div
-                      className={`text-[8px] lg:text-sm ${
-                        isLightMode ? "text-slate-600" : ""
-                      }`}
-                    >
-                      Date Created: {item.dateCreated}
-                    </div>
-                  </div>
+      <div className="h-5/6 flex justify-center overflow-auto hide-scrollbar py-6 px-4">
+        <div className="w-full max-w-4xl flex flex-col gap-3">
+          {fileList.map((item, index) => (
+            <div
+              key={index}
+              onClick={() => toggleExpand(index)}
+              className={`group border rounded-tech-lg cursor-pointer transition-all duration-200 p-4 sm:p-5 flex items-center justify-between backdrop-blur-sm hover:-translate-y-0.5 ${
+                isLightMode
+                  ? "bg-white/90 border-gray-200 hover:border-accent-violet hover:shadow-md"
+                  : "bg-dark-surface/90 border-dark-border hover:border-accent-violet/60 hover:shadow-lg"
+              }`}
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="p-2.5 rounded-tech bg-accent-violet/10 text-accent-violet flex-shrink-0">
+                  <FileCode className="w-5 h-5" />
                 </div>
-                <MdDelete
-                  onClick={() => handleDelete(item.fileName)}
-                  className={`text-1xl lg:text-2xl lg:text-3xl ${
-                    isLightMode ? "text-slate-500" : ""
-                  } hover:text-red-400 transform transition-all duration-300`}
-                />
+                <div className="min-w-0">
+                  <h3
+                    className={`font-mono font-bold text-sm sm:text-base truncate ${
+                      isLightMode ? "text-gray-900" : "text-white"
+                    }`}
+                  >
+                    {item.fileName}
+                  </h3>
+                  <p
+                    className={`font-mono text-xs ${
+                      isLightMode ? "text-gray-500" : "text-gray-400"
+                    }`}
+                  >
+                    Created: {item.dateCreated}
+                  </p>
+                </div>
               </div>
-            ))}
+
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:inline font-mono text-xs text-accent-violet opacity-0 group-hover:opacity-100 transition-opacity">
+                  Open File →
+                </span>
+                <button
+                  onClick={(e) => handleDelete(e, item.fileName)}
+                  className="p-2 rounded-tech text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                  title="Delete file"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
+      {/* Delete Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
-          <div className={` ${isLightMode?"bg-white border-2 border-gray-200":"bg-gray-950 border-2 border-gray-900"} rounded-lg w-[90%] sm:w-3/4 md:w-1/2 lg:w-2/5 p-4 m-10 lg:m-0 sm:p-6 shadow-xl text-center max-w-[600px]`}>
-            <p className={`text-sm sm:text-lg font-light mb-4 leading-relaxed ${isLightMode?"text-black":"text-white"} `}>
-              Are you sure you want to delete this file? Type{" "}
-              <span className="font-bold text-pink-600">
-                "Delete {ToBeDeleted}"
-              </span>{" "}
-              to delete the file from your workspace.
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div
+            className={`rounded-tech-lg border p-6 max-w-md w-full text-center shadow-2xl backdrop-blur-xl ${
+              isLightMode
+                ? "bg-white border-gray-200 text-gray-900"
+                : "bg-dark-surface border-dark-border text-white"
+            }`}
+          >
+            <h3 className="font-mono text-lg font-bold mb-2">Confirm File Deletion</h3>
+            <p className="text-xs sm:text-sm font-sans mb-4 text-gray-500 dark:text-gray-400 leading-relaxed">
+              Type <span className="font-mono font-bold text-red-500">delete {toBeDeleted}</span> below to remove this file.
             </p>
 
             <input
               type="text"
-              placeholder={`Enter Delete ${ToBeDeleted}`}
+              placeholder={`delete ${toBeDeleted}`}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full bg-gray-100 border border-gray-300 rounded-md px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base"
+              className={`w-full font-mono text-xs sm:text-sm px-3.5 py-2.5 rounded-tech border mb-5 outline-none ${
+                isLightMode
+                  ? "bg-slate-50 border-gray-300 text-gray-900 focus:border-red-500"
+                  : "bg-dark-bg border-dark-border text-white focus:border-red-500"
+              }`}
             />
 
-            <div className="flex justify-between flex-row sm:flex-row justify-center sm:justify-between items-center mt-6 gap-3 sm:gap-4">
+            <div className="flex gap-3 justify-end">
               <button
-                onClick={closeFile}
-                className={`sm:w-auto ${isLightMode?"bg-pink-500 hover:bg-pink-600":"bg-orange-500 hover:bg-orange-600"} px-3 py-2  text-white lg:px-6 lg:py-2 rounded-lg transition-all duration-300 active:scale-95`}
+                onClick={() => {
+                  setIsOpen(false);
+                  setConfirm("");
+                }}
+                className="px-4 py-2 rounded-tech font-mono text-xs font-semibold border border-gray-300 dark:border-dark-border text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-bg transition"
               >
-                Close
+                Cancel
               </button>
-
               <button
                 onClick={checkValidity}
-                className={`sm:w-auto ${isLightMode?"bg-blue-500 hover:bg-blue-600":"bg-green-500 hover:bg-green-600"} px-3 py-2  text-white lg:px-6 lg:py-2 rounded-lg transition-all duration-300 active:scale-95`}
+                className="px-4 py-2 rounded-tech font-mono text-xs font-semibold bg-red-600 hover:bg-red-700 text-white transition shadow-sm"
               >
-                Confirm
+                Delete File
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Overlay */}
-      {/* Fullscreen Overlay with Blur */}
-      {expandedIndex !== null && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-md z-50 flex justify-center items-center p-4 sm:p-6">
-          <div className="bg-white w-full sm:w-5/6 lg:w-3/4 max-w-2xl rounded-lg p-4 sm:p-6 shadow-xl max-h-[80vh] flex flex-col relative">
-            <button
-              onClick={closeOverlay}
-              className="absolute top-3 right-4 text-xl sm:text-2xl font-bold text-gray-600 hover:text-red-500"
-            >
-              &times;
-            </button>
+      {/* File Preview Overlay */}
+      {expandedIndex !== null && fileList[expandedIndex] && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex justify-center items-center p-4 sm:p-6">
+          <div
+            className={`w-full max-w-3xl rounded-tech-lg border p-5 sm:p-6 shadow-2xl max-h-[85vh] flex flex-col relative backdrop-blur-xl ${
+              isLightMode
+                ? "bg-white border-gray-200 text-gray-900"
+                : "bg-dark-surface border-dark-border text-white"
+            }`}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-dark-border mb-4">
+              <div className="flex items-center gap-2">
+                <FileCode className="w-5 h-5 text-accent-violet" />
+                <h2 className="font-mono text-base sm:text-lg font-bold truncate">
+                  {fileList[expandedIndex].fileName}
+                </h2>
+              </div>
 
-            {/* Title */}
-            <h2 className="text-lg sm:text-2xl font-bold mb-4 text-gray-800 pr-10">
-              📁 {fileList[expandedIndex].fileName}
-            </h2>
-            <div className="flex justify-end h-fit">
-              {" "}
-              {/* Give some height */}
-              <CopyToClipboard
-                className="hover:cursor-pointer hover:text-blue-700"
-                text={fileList[expandedIndex].fileContent}
-                onCopy={() => setCopied(true)}
-              >
-                <button className="bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors">
-                  <FaCopy className="text-sm lg:text-[20px]" onClick={() => copyKar()} />
+              <div className="flex items-center gap-2">
+                <CopyToClipboard
+                  text={fileList[expandedIndex].fileContent}
+                  onCopy={copyContent}
+                >
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-tech border border-gray-200 dark:border-dark-border text-xs font-mono text-gray-600 dark:text-gray-300 hover:border-accent-violet transition">
+                    {copied ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                    <span>{copied ? "Copied" : "Copy"}</span>
+                  </button>
+                </CopyToClipboard>
+
+                <button
+                  onClick={closeOverlay}
+                  className="p-1.5 rounded-tech text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                >
+                  <X className="w-5 h-5" />
                 </button>
-              </CopyToClipboard>
+              </div>
             </div>
 
-            {/* Scrollable Content Area */}
-            <div className="overflow-auto">
-              <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">
+            <div
+              className={`overflow-auto p-4 rounded-tech font-mono text-xs sm:text-sm leading-relaxed ${
+                isLightMode ? "bg-slate-50 text-gray-800" : "bg-dark-bg text-gray-200"
+              }`}
+            >
+              <pre className="whitespace-pre-wrap font-mono">
                 {fileList[expandedIndex].fileContent}
-              </p>
+              </pre>
             </div>
           </div>
         </div>

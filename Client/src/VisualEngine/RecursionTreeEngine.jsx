@@ -1,375 +1,219 @@
-// import React, { useMemo } from 'react';
-// import * as d3 from 'd3-hierarchy';
+import React from 'react';
+import { motion } from 'framer-motion';
 
-// export default function RecursionTreeEngine({ data }) {
-//   const { nodes, links } = useMemo(() => {
-//     if (!data?.tree) return { nodes: [], links: [] };
-//     try {
-//       const root = d3.hierarchy(data.tree);
-//       // Ultra-compact spacing to fit deeper recursion trees
-//       const layout = d3.tree().nodeSize([85, 200]); 
-//       layout(root);
-//       return { nodes: root.descendants(), links: root.links() };
-//     } catch {
-//       return { nodes: [], links: [] };
-//     }
-//   }, [data]);
-
-//   if (!nodes.length) {
-//     return (
-//       <div className="flex items-center justify-center w-full h-full text-slate-500 text-xs font-mono tracking-widest uppercase">
-//         <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2" />
-//         Tracing Recursion...
-//       </div>
-//     );
-//   }
-
-//   // Padding to ensure nodes/badges don't get cut off at the edges
-//   const PAD = 60;
-//   const minX = Math.min(...nodes.map((n) => n.x)) - PAD;
-//   const maxX = Math.max(...nodes.map((n) => n.x)) + PAD;
-//   const minY = Math.min(...nodes.map((n) => n.y)) - PAD;
-//   const maxY = Math.max(...nodes.map((n) => n.y)) + PAD;
-
-//   return (
-//     <div className="w-full h-full flex items-center justify-center overflow-hidden p-2 relative">
-      
-//       {/* Optional: Minimal Legend */}
-//       <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none bg-slate-900/50 p-2 rounded border border-slate-700/50 backdrop-blur-sm z-10">
-//         <div className="flex items-center gap-2 text-[9px] font-mono text-slate-300">
-//           <div className="w-2 h-2 rounded-full bg-rose-500" /> Left Call
-//         </div>
-//         <div className="flex items-center gap-2 text-[9px] font-mono text-slate-300">
-//           <div className="w-2 h-2 rounded-full bg-blue-500" /> Right Call
-//         </div>
-//       </div>
-
-//       <svg width="100%" height="100%" viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} preserveAspectRatio="xMidYMid meet">
-//         <defs>
-//           {/* Arrowheads mapped to branch colors */}
-//           <marker id="arrow-left" markerWidth="6" markerHeight="6" refX="16" refY="3" orient="auto">
-//             <polygon points="0 0,6 3,0 6" fill="#f43f5e" /> {/* Rose-500 */}
-//           </marker>
-//           <marker id="arrow-right" markerWidth="6" markerHeight="6" refX="16" refY="3" orient="auto">
-//             <polygon points="0 0,6 3,0 6" fill="#3b82f6" /> {/* Blue-500 */}
-//           </marker>
-//           <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="16" refY="3" orient="auto">
-//             <polygon points="0 0,6 3,0 6" fill="#64748b" /> {/* Slate-500 */}
-//           </marker>
-          
-//           {/* Subtle glow filter for the active node */}
-//           <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-//             <feGaussianBlur stdDeviation="3" result="blur" />
-//             <feComposite in="SourceGraphic" in2="blur" operator="over" />
-//           </filter>
-//         </defs>
-
-//         <g>
-//           {/* --- LINKS (EDGES) --- */}
-//           {links.map((lnk, i) => {
-//             const childIndex = lnk.source.children ? lnk.source.children.indexOf(lnk.target) : -1;
-//             const isLeft = childIndex === 0;
-//             const isRight = childIndex === 1;
-
-//             const strokeColor = isLeft ? "#f43f5e" : isRight ? "#3b82f6" : "#64748b";
-//             const markerId = isLeft ? "arrow-left" : isRight ? "arrow-right" : "arrow-default";
-            
-//             // Cubic Bezier curve for smooth, organic branches
-//             const pathData = `M${lnk.source.x},${lnk.source.y} C${lnk.source.x},${(lnk.source.y + lnk.target.y) / 2} ${lnk.target.x},${(lnk.source.y + lnk.target.y) / 2} ${lnk.target.x},${lnk.target.y}`;
-            
-//             // Midpoint for tiny edge labels (L / R)
-//             const midX = (lnk.source.x + lnk.target.x) / 2;
-//             const midY = (lnk.source.y + lnk.target.y) / 2;
-
-//             return (
-//               <g key={`edge-${i}`}>
-//                 <path 
-//                   d={pathData} 
-//                   stroke={strokeColor} 
-//                   strokeWidth="1.5" 
-//                   fill="none" 
-//                   markerEnd={`url(#${markerId})`}
-//                   style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }}
-//                 />
-//                 {/* Tiny branch labels (L/R) */}
-//                 <text 
-//                   x={midX + (isLeft ? -8 : 8)} 
-//                   y={midY} 
-//                   fill={strokeColor} 
-//                   fontSize="7" 
-//                   fontWeight="bold" 
-//                   fontFamily="'JetBrains Mono', monospace"
-//                   textAnchor="middle"
-//                   opacity="0.8"
-//                 >
-//                   {isLeft ? "L" : isRight ? "R" : ""}
-//                 </text>
-//               </g>
-//             );
-//           })}
-
-//           {/* --- NODES --- */}
-//           {nodes.map((node, i) => {
-//             const isCompleted = node.data.status === 'completed';
-//             const isActive = node.data.status === 'active';
-            
-//             // Dynamic styling based on execution state
-//             const bgFill = isActive ? "#1e1b4b" : isCompleted ? "#064e3b" : "#1e293b"; // Indigo-950, Emerald-950, Slate-800
-//             const strokeColor = isActive ? "#818cf8" : isCompleted ? "#34d399" : "#475569"; // Indigo-400, Emerald-400, Slate-600
-//             const strokeW = isActive ? "2.5" : "1.5";
-
-//             return (
-//               <g 
-//                 key={`nd-${node.data.id ?? i}`} 
-//                 transform={`translate(${node.x},${node.y})`} 
-//                 style={{ transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
-//               >
-//                 {/* Optional subtle active halo */}
-//                 {isActive && (
-//                   <circle r="19" fill="none" stroke="#6366f1" strokeWidth="4" opacity="0.3" className="animate-ping" />
-//                 )}
-
-//                 {/* Main Node Circle */}
-//                 <circle 
-//                   r="14" 
-//                   fill={bgFill} 
-//                   stroke={strokeColor} 
-//                   strokeWidth={strokeW} 
-//                   filter={isActive ? "url(#glow)" : ""}
-//                 />
-                
-//                 {/* Function Call Text (e.g., f(5)) */}
-//                 <text 
-//                   dy="3" 
-//                   textAnchor="middle" 
-//                   fill={isActive ? "#e0e7ff" : "#f8fafc"} 
-//                   fontSize="6" 
-//                   fontWeight="700" 
-//                   fontFamily="'JetBrains Mono', monospace" 
-//                   style={{ pointerEvents: "none", userSelect: "none" }}
-//                 >
-//                   {node.data.name}
-//                 </text>
-
-//                 {/* Return Value Pill Badge */}
-//                 {isCompleted && node.data.returnValue && (
-//                   <g transform="translate(0, 22)">
-//                     <rect 
-//                       x="-14" 
-//                       y="-7" 
-//                       width="28" 
-//                       height="14" 
-//                       rx="4" 
-//                       fill="#064e3b" 
-//                       stroke="#10b981" 
-//                       strokeWidth="1" 
-//                     />
-//                     <text 
-//                       dy="3.5" 
-//                       textAnchor="middle" 
-//                       fill="#a7f3d0" 
-//                       fontSize="7" 
-//                       fontWeight="bold" 
-//                       fontFamily="'JetBrains Mono', monospace"
-//                     >
-//                       {node.data.returnValue}
-//                     </text>
-//                   </g>
-//                 )}
-//               </g>
-//             );
-//           })}
-//         </g>
-//       </svg>
-//     </div>
-//   );
+// RecursionTreeEngine - Visualizes function call stack as a tree
+// data shape: {
+//   nodes: [{ id, label, args, returnValue, depth, isActive, isReturning }],
+//   edges: [{ from, to }],
+//   narration: "..."
 // }
 
-
-
-import React, { useMemo } from 'react';
-import * as d3 from 'd3-hierarchy';
-
 export default function RecursionTreeEngine({ data }) {
-  const { nodes, links } = useMemo(() => {
-    if (!data?.tree) return { nodes: [], links: [] };
-    try {
-      const root = d3.hierarchy(data.tree);
-      // Ultra-compact spacing to fit deeper recursion trees
-      const layout = d3.tree().nodeSize([85, 200]); 
-      layout(root);
-      return { nodes: root.descendants(), links: root.links() };
-    } catch {
-      return { nodes: [], links: [] };
-    }
-  }, [data]);
+  const nodes = data?.nodes ?? [];
+  const edges = data?.edges ?? [];
+  const narration = data?.narration ?? null;
 
   if (!nodes.length) {
     return (
-      <div className="flex items-center justify-center w-full h-full text-slate-500 text-xs font-mono tracking-widest uppercase">
-        <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mr-2" />
-        Tracing Recursion...
+      <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono">
+        Waiting for recursion tree data…
       </div>
     );
   }
 
-  // Padding to ensure nodes/badges don't get cut off at the edges
-  const PAD = 60;
-  const minX = Math.min(...nodes.map((n) => n.x)) - PAD;
-  const maxX = Math.max(...nodes.map((n) => n.x)) + PAD;
-  const minY = Math.min(...nodes.map((n) => n.y)) - PAD;
-  const maxY = Math.max(...nodes.map((n) => n.y)) + PAD;
+  // Calculate tree layout
+  const maxDepth = Math.max(...nodes.map(n => n.depth ?? 0), 0);
+  const depthGroups = Array.from({ length: maxDepth + 1 }, () => []);
+  nodes.forEach(node => {
+    const depth = node.depth ?? 0;
+    depthGroups[depth].push(node);
+  });
+
+  const NODE_W = 120;
+  const NODE_H = 60;
+  const LEVEL_H = 100;
+  const LEVEL_W_MIN = 1200;
+
+  const maxNodesInLevel = Math.max(...depthGroups.map(g => g.length), 1);
+  const svgWidth = Math.max(LEVEL_W_MIN, maxNodesInLevel * (NODE_W + 40));
+  const svgHeight = (maxDepth + 1) * LEVEL_H + 100;
+
+  // Assign positions
+  const positions = {};
+  depthGroups.forEach((group, depth) => {
+    const spacing = svgWidth / (group.length + 1);
+    group.forEach((node, idx) => {
+      positions[node.id] = {
+        x: spacing * (idx + 1),
+        y: 50 + depth * LEVEL_H
+      };
+    });
+  });
 
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden p-2 relative">
-      
-      {/* Optional: Minimal Legend */}
-      <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none bg-slate-900/50 p-2 rounded border border-slate-700/50 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-2 text-[9px] font-mono text-slate-300">
-          <div className="w-2 h-2 rounded-full bg-rose-500" /> Left Call
+    <div className="flex flex-col w-full h-full overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-slate-700/30 bg-slate-950/50">
+        <span className="px-2.5 py-0.5 rounded-md bg-pink-500/10 border border-pink-500/25 text-[10px] font-mono text-pink-400 tracking-widest uppercase">
+          Recursion Tree · {nodes.length} calls · depth {maxDepth}
+        </span>
+        {data?.statusText && (
+          <span className="text-[11px] font-mono text-amber-300">{data.statusText}</span>
+        )}
+      </div>
+
+      {/* Tree Visualization */}
+      <div className="flex-1 flex items-start justify-center overflow-auto p-4">
+        <svg
+          width={svgWidth}
+          height={svgHeight}
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          style={{ minWidth: `${svgWidth}px` }}
+        >
+          <defs>
+            <marker id="arrow-recursion" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#64748b" />
+            </marker>
+            <marker id="arrow-active" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#ec4899" />
+            </marker>
+          </defs>
+
+          {/* Draw edges */}
+          {edges.map((edge, idx) => {
+            const from = positions[edge.from];
+            const to = positions[edge.to];
+            if (!from || !to) return null;
+
+            const isActiveEdge = nodes.find(n => n.id === edge.to)?.isActive;
+
+            return (
+              <line
+                key={idx}
+                x1={from.x}
+                y1={from.y + NODE_H / 2}
+                x2={to.x}
+                y2={to.y - 5}
+                stroke={isActiveEdge ? '#ec4899' : '#475569'}
+                strokeWidth={isActiveEdge ? 2 : 1.5}
+                markerEnd={isActiveEdge ? 'url(#arrow-active)' : 'url(#arrow-recursion)'}
+              />
+            );
+          })}
+
+          {/* Draw nodes */}
+          {nodes.map((node) => {
+            const pos = positions[node.id];
+            if (!pos) return null;
+
+            const isActive = node.isActive;
+            const isReturning = node.isReturning;
+
+            return (
+              <g key={node.id}>
+                <motion.rect
+                  x={pos.x - NODE_W / 2}
+                  y={pos.y}
+                  width={NODE_W}
+                  height={NODE_H}
+                  rx={8}
+                  fill={isActive ? '#831843' : isReturning ? '#064e3b' : '#1e293b'}
+                  stroke={isActive ? '#ec4899' : isReturning ? '#10b981' : '#334155'}
+                  strokeWidth={isActive || isReturning ? 2 : 1.5}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    filter: isActive ? 'drop-shadow(0 0 8px rgba(236, 72, 153, 0.4))' :
+                            isReturning ? 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.3))' : 'none'
+                  }}
+                />
+
+                {/* Function name */}
+                <text
+                  x={pos.x}
+                  y={pos.y + 20}
+                  textAnchor="middle"
+                  fill={isActive ? '#fce7f3' : isReturning ? '#d1fae5' : '#e2e8f0'}
+                  fontSize="12"
+                  fontWeight="700"
+                  fontFamily="'JetBrains Mono', monospace"
+                >
+                  {node.label ?? `call-${node.id}`}
+                </text>
+
+                {/* Arguments */}
+                {node.args && (
+                  <text
+                    x={pos.x}
+                    y={pos.y + 36}
+                    textAnchor="middle"
+                    fill="#94a3b8"
+                    fontSize="10"
+                    fontFamily="monospace"
+                  >
+                    ({String(node.args)})
+                  </text>
+                )}
+
+                {/* Return value */}
+                {node.returnValue !== undefined && (
+                  <text
+                    x={pos.x}
+                    y={pos.y + 52}
+                    textAnchor="middle"
+                    fill="#34d399"
+                    fontSize="9"
+                    fontWeight="600"
+                    fontFamily="monospace"
+                  >
+                    → {String(node.returnValue)}
+                  </text>
+                )}
+
+                {/* Active indicator */}
+                {isActive && (
+                  <text
+                    x={pos.x}
+                    y={pos.y - 5}
+                    textAnchor="middle"
+                    fill="#ec4899"
+                    fontSize="9"
+                    fontWeight="700"
+                    fontFamily="monospace"
+                  >
+                    ACTIVE
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="flex-shrink-0 flex items-center gap-4 px-4 py-2 border-t border-slate-700/25 bg-slate-950/40">
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded border-2 border-pink-500 bg-pink-900/50" />
+          <span className="text-[9px] font-mono text-slate-500">Currently executing</span>
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-mono text-slate-300">
-          <div className="w-2 h-2 rounded-full bg-blue-500" /> Right Call
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded border-2 border-emerald-500 bg-emerald-900/50" />
+          <span className="text-[9px] font-mono text-slate-500">Returning</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded border border-slate-600 bg-slate-800" />
+          <span className="text-[9px] font-mono text-slate-500">Completed</span>
         </div>
       </div>
 
-      <svg width="100%" height="100%" viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} preserveAspectRatio="xMidYMid meet">
-        <defs>
-          {/* Arrowheads mapped to branch colors */}
-          <marker id="arrow-left" markerWidth="6" markerHeight="6" refX="16" refY="3" orient="auto">
-            <polygon points="0 0,6 3,0 6" fill="#f43f5e" /> {/* Rose-500 */}
-          </marker>
-          <marker id="arrow-right" markerWidth="6" markerHeight="6" refX="16" refY="3" orient="auto">
-            <polygon points="0 0,6 3,0 6" fill="#3b82f6" /> {/* Blue-500 */}
-          </marker>
-          <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="16" refY="3" orient="auto">
-            <polygon points="0 0,6 3,0 6" fill="#64748b" /> {/* Slate-500 */}
-          </marker>
-          
-          {/* Subtle glow filter for the active node */}
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-
-        <g>
-          {/* --- LINKS (EDGES) --- */}
-          {links.map((lnk, i) => {
-            const childIndex = lnk.source.children ? lnk.source.children.indexOf(lnk.target) : -1;
-            const isLeft = childIndex === 0;
-            const isRight = childIndex === 1;
-
-            const strokeColor = isLeft ? "#f43f5e" : isRight ? "#3b82f6" : "#64748b";
-            const markerId = isLeft ? "arrow-left" : isRight ? "arrow-right" : "arrow-default";
-            
-            // Cubic Bezier curve for smooth, organic branches
-            const pathData = `M${lnk.source.x},${lnk.source.y} C${lnk.source.x},${(lnk.source.y + lnk.target.y) / 2} ${lnk.target.x},${(lnk.source.y + lnk.target.y) / 2} ${lnk.target.x},${lnk.target.y}`;
-            
-            // Midpoint for tiny edge labels (L / R)
-            const midX = (lnk.source.x + lnk.target.x) / 2;
-            const midY = (lnk.source.y + lnk.target.y) / 2;
-
-            return (
-              <g key={`edge-${i}`}>
-                <path 
-                  d={pathData} 
-                  stroke={strokeColor} 
-                  strokeWidth="1.5" 
-                  fill="none" 
-                  markerEnd={`url(#${markerId})`}
-                  style={{ transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }}
-                />
-                {/* Tiny branch labels (L/R) */}
-                <text 
-                  x={midX + (isLeft ? -8 : 8)} 
-                  y={midY} 
-                  fill={strokeColor} 
-                  fontSize="7" 
-                  fontWeight="bold" 
-                  fontFamily="'JetBrains Mono', monospace"
-                  textAnchor="middle"
-                  opacity="0.8"
-                >
-                  {isLeft ? "L" : isRight ? "R" : ""}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* --- NODES --- */}
-          {nodes.map((node, i) => {
-            const isCompleted = node.data.status === 'completed';
-            const isActive = node.data.status === 'active';
-            
-            // Dynamic styling based on execution state
-            const bgFill = isActive ? "#1e1b4b" : isCompleted ? "#064e3b" : "#1e293b"; // Indigo-950, Emerald-950, Slate-800
-            const strokeColor = isActive ? "#818cf8" : isCompleted ? "#34d399" : "#475569"; // Indigo-400, Emerald-400, Slate-600
-            const strokeW = isActive ? "2.5" : "1.5";
-
-            return (
-              <g 
-                key={`nd-${node.data.id ?? i}`} 
-                transform={`translate(${node.x},${node.y})`} 
-                style={{ transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
-              >
-                {/* Optional subtle active halo */}
-                {isActive && (
-                  <circle r="19" fill="none" stroke="#6366f1" strokeWidth="4" opacity="0.3" className="animate-ping" />
-                )}
-
-                {/* Main Node Circle */}
-                <circle 
-                  r="14" 
-                  fill={bgFill} 
-                  stroke={strokeColor} 
-                  strokeWidth={strokeW} 
-                  filter={isActive ? "url(#glow)" : ""}
-                />
-                
-                {/* Function Call Text (e.g., f(5)) */}
-                <text 
-                  dy="3" 
-                  textAnchor="middle" 
-                  fill={isActive ? "#e0e7ff" : "#f8fafc"} 
-                  fontSize="6" 
-                  fontWeight="700" 
-                  fontFamily="'JetBrains Mono', monospace" 
-                  style={{ pointerEvents: "none", userSelect: "none" }}
-                >
-                  {node.data.name}
-                </text>
-
-                {/* Return Value Pill Badge */}
-                {isCompleted && node.data.returnValue && (
-                  <g transform="translate(0, 22)">
-                    <rect 
-                      x="-14" 
-                      y="-7" 
-                      width="28" 
-                      height="14" 
-                      rx="4" 
-                      fill="#064e3b" 
-                      stroke="#10b981" 
-                      strokeWidth="1" 
-                    />
-                    <text 
-                      dy="3.5" 
-                      textAnchor="middle" 
-                      fill="#a7f3d0" 
-                      fontSize="7" 
-                      fontWeight="bold" 
-                      fontFamily="'JetBrains Mono', monospace"
-                    >
-                      {node.data.returnValue}
-                    </text>
-                  </g>
-                )}
-              </g>
-            );
-          })}
-        </g>
-      </svg>
+      {/* Narration */}
+      {narration && (
+        <div className="flex-shrink-0 flex items-start gap-2.5 px-5 py-2 border-t border-amber-500/15 bg-amber-500/5">
+          <span className="text-amber-500/60 text-sm mt-0.5 flex-shrink-0">✎</span>
+          <span className="text-[12.5px] font-medium text-amber-200/90 leading-snug">{narration}</span>
+        </div>
+      )}
     </div>
   );
 }

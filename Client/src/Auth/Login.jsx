@@ -1,46 +1,27 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { FiMail, FiLock } from "react-icons/fi";
-import { useAppContext } from "../Context/AppContext";
+import { signIn } from "../lib/supabase";
 
-const Login = ({ isLightMode, setisLightMode }) => {
-  const { BACKEND_URL, setisLoggedIn, isLoggedIn, userData, getUserData } =
-    useAppContext();
+const Login = ({ isLightMode }) => {
   const Navigate = useNavigate();
 
   const [formData, setFormdata] = useState({ email: "", password: "" });
 
   // console.log("In Login.jsx Logged in is : "+isLoggedIn);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
-    // BYPASS - Auto login without checking
-    toast.success("Logged in Successfully...");
-    setisLoggedIn(true);
-    setTimeout(() => {
+    try {
+      await signIn(formData.email, formData.password);
+      setFormdata({ email: "", password: "" });
+      toast.success("Logged in successfully.");
       Navigate("/");
-    }, 500);
-
-    // axios
-    //   .post(BACKEND_URL + "/api/auth/login", formData, { withCredentials: true })
-    //   .then((res) => {
-    //     setFormdata({ email: "", password: "" });
-    //     if (res.data.status === 0) {
-    //       setisLoggedIn(false);
-    //       Navigate("/RegisterPage");
-    //     } else {
-    //       toast.success("Login Successfully...");
-    //       getUserData();
-    //       setisLoggedIn(true);
-    //       Navigate("/");
-    //     }
-    //   })
-    //   .catch(() => {
-    //     toast.error("Login failed. Please try again.");
-    //   });
+    } catch (error) {
+      toast.error(error.message || "Login failed. Please try again.");
+    }
   }
 
   function handleChange(e) {

@@ -1,163 +1,236 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import CodeEditorImage from "../assets/CodeEditorPage.png";
-import codeReviewer from "../assets/codeReviewer.png";
-import chatBot from "../assets/chatBot.png";
-import { MdOpenInNew } from "react-icons/md";
-import { useNavigate } from "react-router-dom";
+import { Play, Users, Code2, MessageSquare, CheckCircle2, Video } from "lucide-react";
 
-// This cardVariants is currently not being used in the component,
-// but I've kept it as you requested no extra changes.
-const cardVariants = {
-  offscreen: { y: 100, opacity: 0 },
-  onscreen: {
-    y: 0,
-    opacity: 1,
-    transition: { duration: 0.6, type: "spring", bounce: 0.3 },
-  },
-};
-
-
-const allFeatures = [
-  {
-    image: CodeEditorImage,
-    title: "Collaboration Editor",
-    desc: "Work with teammates or friends instantly in a shared code editor. See changes live as you type, with seamless synchronization and zero delay.",
-    link:"/RoomPage"
-  },
-  {
-    image: codeReviewer,
-    title: "AI Code Reviewer",
-    desc: "Get instant feedback on your code with our intelligent reviewer. It analyzes your code in real time, detects bugs, suggests improvements.",
-    link:"/CodeReviewer"
-  },
-  {
-    image: chatBot,
-    title: "AI Chatbot",
-    desc: "Chat instantly with an intelligent AI that understands you, answers smartly, and assists in coding and conversations effortlessly.",
-    link:"/ChatDesktop"
-  },
-];
-
-
-const Features = ({ isLightMode, setisLightMode }) => {
-  const [currentLink,setcurrentLink] = useState("/RoomPage");
-  const myNavigate = useNavigate();
-  // Your original highlightText function (unchanged)
-  const highlightText = (text) => {
-    const keywords = ["Real-Time", "Seamless", "Instantly", "Live"];
-    let highlightedText = text;
-    keywords.forEach((keyword) => {
-      const regex = new RegExp(`\\b${keyword}\\b`, "gi");
-      highlightedText = highlightedText.replace(
-        regex,
-        isLightMode
-          ? `<span class="text-blue-500 underline font-semibold">${keyword}</span>`
-          : `<span class="text-green-700 underline font-semibold">${keyword}</span>`
-      );
-    });
-    return highlightedText;
-  };
-
-  // Your original state management (unchanged)
-  const [title, setTitle] = useState("Real-Time Code Collaboration Editor");
-  const [desc, setDesc] = useState(
-    "Work with teammates or friends instantly in a shared code editor. See changes live as you type, with seamless synchronization and zero delay."
-  );
-  const [active,setActive] = useState(0);
-  const [image, setImage] = useState(CodeEditorImage);
-  const [ContentKey,setContentKey] = useState(0);
-
-  const handleShifting = (idx) => {
-    setTitle(allFeatures[idx].title);
-    setDesc(allFeatures[idx].desc);
-    setImage(allFeatures[idx].image);
-    setContentKey(idx);
-    setcurrentLink(allFeatures[idx].link);
-    setActive(idx);
-  };
-
+function Intro({ isLightMode }) {
   return (
-    // FIX: Changed to min-h-screen to prevent overflow, removed w-screen
-    <div
-      id="features"
-      className={`py-20 min-h-screen flex justify-center items-center ${isLightMode?"bg-[#FFFFFF]":"bg-[#030712]"}
-      `}
+    <section
+      id="demo-visual"
+      className={`py-20 sm:py-28 px-4 sm:px-6 lg:px-8 relative transition-colors duration-300 ${
+        isLightMode ? "bg-white" : "bg-dark-bg"
+      }`}
     >
-      {/* FIX: Using 'container' and 'mx-auto' for proper centering and max-width */}
-      <div className="container mx-auto bg-transparent text-center p-4">
-        <motion.h3
-          initial={{ opacity: 0, y: -30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className={`text-5xl font-bold m-5 ${
-            isLightMode ? "text-black" : "text-white"
-          }`}
-        >
-          Our Features
-        </motion.h3>
+      <div className="max-w-7xl mx-auto">
+        {/* Split Screen Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
 
-        {/* This container has been centered */}
-        <div className="flex flex-row justify-center bg-transparent py-4 px-2">
-          <div className={`text-white w-fit h-fit px-2 py-1 ${isLightMode?"bg-blue-300":"bg-[#1F2937]"} rounded-full`}>
-            <button className={`px-4 ${isLightMode?"hover:bg-blue-500":"hover:bg-[#2e3b4f]"} rounded-full ${active==0?`${isLightMode?"active:bg-[#3B82F6] bg-[#3B82F6]":"active:bg-green-600 bg-green-700"} transition-all duration-300`:""} p-2`} onClick={() => handleShifting(0)}>
-              Collaboration Editor
-            </button>
-            <button className={`px-4 ${isLightMode?"hover:bg-blue-500":"hover:bg-[#2e3b4f]"} mx-2 rounded-full ${active==1?`${isLightMode?"active:bg-[#3B82F6] bg-[#3B82F6]":"active:bg-green-600 bg-green-700"} transition-all duration-300`:""} p-2`} onClick={() => handleShifting(1)}>
-              Code Reviewer
-            </button>
-            <button className={`px-4 ${isLightMode?"hover:bg-blue-500":"hover:bg-[#2e3b4f]"} rounded-full ${active==2?`${isLightMode?"active:bg-[#3B82F6] bg-[#3B82F6]":"active:bg-green-600 bg-green-700"} transition-all duration-300`:""} p-2`} onClick={() => handleShifting(2)}>
-              AI Chatbot
-            </button>
-          </div>
-        </div>
-
-        {/* FIX: This is now a responsive flex container (column on mobile, row on desktop) */}
-        <div className="bg-transparent py-5 flex flex-col md:flex-row gap-8 items-center">
-          {/* Image Container */}
+          {/* LEFT: Code Editor Mock with Problem Statement (7 cols) */}
           <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            key={title}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="w-full md:w-3/4" // FIX: Responsive width
+            transition={{ duration: 0.6 }}
+            className="lg:col-span-7"
           >
-            <img src={image} className="rounded-md bg-transparent h-full w-full object-contain" alt={title} />
-          </motion.div>
-          
-          {/* Text Content Container */}
-          <motion.div 
-          initial={{ opacity: 0, y: -30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            key={ContentKey}
-            viewport={{ once: true }}
-          className="w-full md:w-1/4 bg-transparent p-2 pl-5 text-left">
-            <h1
-              className={`text-3xl py-4 font-bold bg-transparent ${
-                isLightMode ? "text-black" : "text-white"
+            <div
+              className={`rounded-tech-lg border overflow-hidden backdrop-blur-sm transition-all ${
+                isLightMode
+                  ? "bg-white border-gray-200 shadow-xl shadow-purple-500/5"
+                  : "bg-dark-surface/90 border-dark-border shadow-2xl shadow-black/60"
               }`}
             >
-              {title}
-            </h1>
-            <p
-              className={`pb-6 bg-transparent ${
-                isLightMode ? "text-black" : "text-white"
+              {/* Problem Panel Header */}
+              <div
+                className={`border-b px-4 py-3 flex items-center justify-between ${
+                  isLightMode ? "bg-gray-50 border-gray-200" : "bg-dark-bg/70 border-dark-border"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-accent-violet"></span>
+                  <span className={`font-mono text-xs sm:text-sm font-semibold ${isLightMode ? "text-gray-800" : "text-gray-200"}`}>
+                    Challenge: Two Sum
+                  </span>
+                </div>
+                <span className="px-2.5 py-0.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px] font-mono rounded font-medium">
+                  EASY • 15 MIN
+                </span>
+              </div>
+
+              {/* Problem Description */}
+              <div className={`p-4 sm:p-5 border-b text-xs sm:text-sm ${isLightMode ? "border-gray-200 text-gray-700 bg-slate-50/50" : "border-dark-border text-gray-300 bg-dark-surface/40"}`}>
+                <p className="leading-relaxed">
+                  Given an array of integers <code className="font-mono text-accent-violet px-1 py-0.5 rounded bg-accent-violet/10">nums</code> and an integer{" "}
+                  <code className="font-mono text-accent-violet px-1 py-0.5 rounded bg-accent-violet/10">target</code>, return indices of the two numbers that sum to target.
+                </p>
+                <div className={`mt-3 p-2.5 rounded font-mono text-xs space-y-1 ${isLightMode ? "bg-white border border-gray-200 text-gray-600" : "bg-dark-bg/60 border border-dark-border text-gray-400"}`}>
+                  <div><span className="text-gray-500">Input:</span> nums = [2, 7, 11, 15], target = 9</div>
+                  <div><span className="text-emerald-500 font-semibold">Output:</span> [0, 1]</div>
+                </div>
+              </div>
+
+              {/* Code Editor Area */}
+              <div className={`font-mono text-xs sm:text-sm p-4 sm:p-5 overflow-x-auto ${isLightMode ? "bg-white" : "bg-[#0b0b12]"}`}>
+                <div className="space-y-1 leading-relaxed">
+                  <div className="flex gap-3">
+                    <span className={`select-none w-5 text-right ${isLightMode ? "text-gray-400" : "text-gray-600"}`}>1</span>
+                    <pre className={isLightMode ? "text-gray-900" : "text-gray-200"}>
+                      <span className="text-purple-400">function</span> <span className="text-blue-400">twoSum</span>(nums, target) {"{"}
+                    </pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className={`select-none w-5 text-right ${isLightMode ? "text-gray-400" : "text-gray-600"}`}>2</span>
+                    <pre className={`pl-4 ${isLightMode ? "text-gray-900" : "text-gray-200"}`}>
+                      <span className="text-purple-400">const</span> map = <span className="text-purple-400">new</span> <span className="text-cyan-400">Map</span>();
+                    </pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className={`select-none w-5 text-right ${isLightMode ? "text-gray-400" : "text-gray-600"}`}>3</span>
+                    <pre className={`pl-4 ${isLightMode ? "text-gray-900" : "text-gray-200"}`}>
+                      <span className="text-purple-400">for</span> (<span className="text-purple-400">let</span> i = 0; i &lt; nums.length; i++) {"{"}
+                      <span className="inline-block w-0.5 h-4 bg-accent-violet ml-1 animate-blink align-middle" />
+                    </pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className={`select-none w-5 text-right ${isLightMode ? "text-gray-400" : "text-gray-600"}`}>4</span>
+                    <pre className={`pl-8 ${isLightMode ? "text-gray-400" : "text-gray-500"}`}>
+                      <span className="italic">// calculate complement and match</span>
+                    </pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className={`select-none w-5 text-right ${isLightMode ? "text-gray-400" : "text-gray-600"}`}>5</span>
+                    <pre className={`pl-4 ${isLightMode ? "text-gray-900" : "text-gray-200"}`}>{"}"}</pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className={`select-none w-5 text-right ${isLightMode ? "text-gray-400" : "text-gray-600"}`}>6</span>
+                    <pre className={isLightMode ? "text-gray-900" : "text-gray-200"}>{"}"}</pre>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Bar */}
+              <div
+                className={`px-4 sm:px-5 py-3 border-t flex items-center justify-between ${
+                  isLightMode ? "bg-gray-50 border-gray-200" : "bg-dark-bg/80 border-dark-border"
+                }`}
+              >
+                <div className="flex items-center gap-2 text-xs font-mono text-emerald-500">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>3 / 3 test cases passed</span>
+                </div>
+                <button
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-tech font-mono font-semibold text-xs transition-all bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  Run Tests
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* RIGHT: Call & Collaboration Feature Details (5 cols) */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="lg:col-span-5 space-y-6"
+          >
+            {/* Text Content */}
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 font-mono text-xs tracking-widest uppercase text-accent-violet">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-violet"></span>
+                Integrated Voice & Video
+              </div>
+              <h2
+                className={`font-mono text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight ${
+                  isLightMode ? "text-gray-900" : "text-white"
+                }`}
+              >
+                Code + Talk in One Unified Window
+              </h2>
+              <p className={`text-sm sm:text-base leading-relaxed ${isLightMode ? "text-gray-600" : "text-gray-400"}`}>
+                Zero alt-tabbing or external meeting links. Crystal-clear WebRTC video and low-latency audio docked directly inside your editor.
+              </p>
+            </div>
+
+            {/* Call Participants Panel */}
+            <div
+              className={`rounded-tech-lg border p-4 sm:p-5 ${
+                isLightMode
+                  ? "bg-white border-gray-200 shadow-lg"
+                  : "bg-dark-surface/80 border-dark-border shadow-xl shadow-black/30"
               }`}
-              // IMPORTANT: Using dangerouslySetInnerHTML to render your HTML string
-              dangerouslySetInnerHTML={{ __html: highlightText(desc) }}
-            ></p>
-            <button onClick={()=>myNavigate(currentLink)} className={`flex flex-row gap-2 items-center px-4 text-[15px] py-2 font-light  text-white hover:bg-transparent ${!isLightMode?"hover:text-[#1EAF53] hover:border-[#1EAF53] bg-[#1EAF53]":"hover:text-[#3B82F6] hover:border-blue-500 bg-[#3B82F6]"} border-2 hover:border-2 rounded-full transition-all duration-300`}>
-              <p>Try now !</p>
-              <MdOpenInNew/>
-            </button>
+            >
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-dark-border">
+                <div className="flex items-center gap-2">
+                  <Users className={`w-4 h-4 ${isLightMode ? "text-gray-700" : "text-gray-300"}`} />
+                  <span className={`font-mono text-xs sm:text-sm font-semibold ${isLightMode ? "text-gray-900" : "text-white"}`}>
+                    Active Room (3 Peers)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span className="font-mono text-[11px] text-emerald-500 font-semibold">ENCRYPTED</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {/* Participant 1 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-accent-violet flex items-center justify-center text-white font-bold text-xs">
+                      A
+                    </div>
+                    <div>
+                      <div className={`font-mono text-xs font-semibold ${isLightMode ? "text-gray-900" : "text-white"}`}>
+                        Arish (Host)
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] text-accent-violet">
+                        <Code2 className="w-3 h-3" />
+                        <span>Editing line 3</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Host
+                  </span>
+                </div>
+
+                {/* Participant 2 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-xs">
+                      S
+                    </div>
+                    <div>
+                      <div className={`font-mono text-xs font-semibold ${isLightMode ? "text-gray-900" : "text-white"}`}>
+                        Salman
+                      </div>
+                      <div className="text-[11px] text-gray-500 font-mono">
+                        Screen sharing (1080p)
+                      </div>
+                    </div>
+                  </div>
+                  <Video className="w-3.5 h-3.5 text-accent-cyan" />
+                </div>
+
+                {/* Participant 3 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold text-xs">
+                      AI
+                    </div>
+                    <div>
+                      <div className={`font-mono text-xs font-semibold ${isLightMode ? "text-gray-900" : "text-white"}`}>
+                        CodeDoodle Bot
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] text-purple-400">
+                        <MessageSquare className="w-3 h-3" />
+                        <span>Reviewing PR</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    Bot
+                  </span>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
-    </div>
+    </section>
   );
-};
+}
 
-export default Features;
+export default Intro;

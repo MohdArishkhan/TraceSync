@@ -1,482 +1,187 @@
-// import React, { useMemo } from 'react';
-// import { motion, AnimatePresence } from 'framer-motion';
-
-// // data shape:
-// // {
-// //   array: [{id, value}, ...],   // heap array (index 0 = root)
-// //   activeIndices: [i, j, ...],  // nodes being compared / swapped
-// //   heapType: 'MIN' | 'MAX'      // optional, defaults MAX
-// // }
-
-// function buildTree(arr) {
-//   if (!arr.length) return null;
-//   const nodes = arr.map((item, i) => ({
-//     id:    item.id ?? `h-${i}`,
-//     value: item.value ?? item,
-//     idx:   i,
-//   }));
-//   return nodes;
-// }
-
-// // Compute (x, y) positions for a binary tree laid out by index
-// function treePositions(n) {
-//   const pos = [];
-//   const NODE_W = 52, LEVEL_H = 72;
-//   const levels = Math.ceil(Math.log2(n + 1));
-
-//   for (let i = 0; i < n; i++) {
-//     const level   = Math.floor(Math.log2(i + 1));
-//     const posInLv = i - (Math.pow(2, level) - 1);
-//     const nodesInLv = Math.pow(2, level);
-//     const totalW = Math.pow(2, levels - 1) * NODE_W;
-//     const spacing = totalW / nodesInLv;
-//     pos.push({
-//       x: spacing * posInLv + spacing / 2,
-//       y: level * LEVEL_H + 32,
-//     });
-//   }
-//   return pos;
-// }
-
-// export default function HeapEngine({ data }) {
-//   const rawItems   = data?.array        ?? [];
-//   const active     = new Set((data?.activeIndices ?? []).map(String));
-//   const heapType   = data?.heapType     ?? 'MAX';
-
-//   const nodes = useMemo(() => buildTree(rawItems), [rawItems]);
-//   const pos   = useMemo(() => treePositions(rawItems.length), [rawItems.length]);
-
-//   if (!rawItems.length) {
-//     return (
-//       <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono">
-//         Heap is empty
-//       </div>
-//     );
-//   }
-
-//   const n      = rawItems.length;
-//   const levels = Math.ceil(Math.log2(n + 1));
-//   const totalW = Math.pow(2, levels - 1) * 52 + 60;
-//   const totalH = levels * 72 + 60;
-
-//   // Max value for bar heights
-//   const numericVals = rawItems.map(it => Number(it.value ?? it)).filter(v => !isNaN(v));
-//   const maxVal = numericVals.length ? Math.max(...numericVals, 1) : 1;
-
-//   return (
-//     <div className="flex flex-col w-full h-full overflow-auto">
-
-//       {/* ── Header badge ── */}
-//       <div className="flex items-center gap-2 px-4 pt-3 pb-1 flex-shrink-0">
-//         <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-//           heapType === 'MIN'
-//             ? 'text-cyan-400 border-cyan-500/40 bg-cyan-500/10'
-//             : 'text-orange-400 border-orange-500/40 bg-orange-500/10'
-//         }`}>
-//           {heapType}-HEAP
-//         </span>
-//         <span className="text-[10px] font-mono text-slate-500">
-//           root&nbsp;=&nbsp;
-//           <span className="text-indigo-300">{rawItems[0]?.value ?? rawItems[0]}</span>
-//         </span>
-//       </div>
-
-//       <div className="flex flex-1 min-h-0 gap-0">
-
-//         {/* ── LEFT: SVG tree ── */}
-//         <div className="flex-1 flex items-center justify-center overflow-hidden p-3">
-//           <svg
-//             width="100%"
-//             height="100%"
-//             viewBox={`-10 0 ${totalW} ${totalH}`}
-//             preserveAspectRatio="xMidYMid meet"
-//           >
-//             <defs>
-//               <marker id="heap-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-//                 <polygon points="0 0,7 2.5,0 5" fill="#334155"/>
-//               </marker>
-//             </defs>
-
-//             {/* Edges */}
-//             {nodes.map((node, i) => {
-//               const leftChild  = 2 * i + 1;
-//               const rightChild = 2 * i + 2;
-//               return (
-//                 <g key={`edges-${i}`}>
-//                   {leftChild < n && (
-//                     <line
-//                       x1={pos[i].x} y1={pos[i].y + 20}
-//                       x2={pos[leftChild].x} y2={pos[leftChild].y - 20}
-//                       stroke="#334155" strokeWidth="1.5"
-//                       markerEnd="url(#heap-arrow)"
-//                     />
-//                   )}
-//                   {rightChild < n && (
-//                     <line
-//                       x1={pos[i].x} y1={pos[i].y + 20}
-//                       x2={pos[rightChild].x} y2={pos[rightChild].y - 20}
-//                       stroke="#334155" strokeWidth="1.5"
-//                       markerEnd="url(#heap-arrow)"
-//                     />
-//                   )}
-//                 </g>
-//               );
-//             })}
-
-//             {/* Nodes */}
-//             {nodes.map((node, i) => {
-//               const isActive = active.has(String(i));
-//               const isRoot   = i === 0;
-//               return (
-//                 <g
-//                   key={node.id}
-//                   transform={`translate(${pos[i].x},${pos[i].y})`}
-//                   style={{ transition: 'transform 0.3s ease' }}
-//                 >
-//                   {isActive && (
-//                     <circle r="26" fill="none" stroke="#818cf8" strokeWidth="2.5" opacity="0.5"/>
-//                   )}
-//                   <circle
-//                     r="20"
-//                     fill={isActive ? '#4f46e5' : isRoot ? '#1e3a5f' : '#1e293b'}
-//                     stroke={isActive ? '#818cf8' : isRoot ? '#3b82f6' : '#334155'}
-//                     strokeWidth={isRoot ? '2' : '1.5'}
-//                   />
-//                   {/* Index label inside node */}
-//                   <text
-//                     dy="-6"
-//                     textAnchor="middle"
-//                     fill={isActive ? '#e0e7ff' : '#e2e8f0'}
-//                     fontSize="12"
-//                     fontWeight="700"
-//                     fontFamily="'JetBrains Mono', monospace"
-//                     style={{ pointerEvents: 'none', userSelect: 'none' }}
-//                   >
-//                     {node.value}
-//                   </text>
-//                   <text
-//                     dy="9"
-//                     textAnchor="middle"
-//                     fill={isActive ? '#c7d2fe' : '#475569'}
-//                     fontSize="8"
-//                     fontFamily="monospace"
-//                     style={{ pointerEvents: 'none', userSelect: 'none' }}
-//                   >
-//                     [{i}]
-//                   </text>
-//                 </g>
-//               );
-//             })}
-//           </svg>
-//         </div>
-
-//         {/* ── RIGHT: underlying array as bars ── */}
-//         <div className="w-20 flex flex-col items-center justify-end p-3 gap-1 border-l border-slate-700/50 flex-shrink-0">
-//           <span className="text-[9px] font-mono text-slate-600 mb-1 self-start">array</span>
-//           <AnimatePresence mode="popLayout" initial={false}>
-//             {[...rawItems].reverse().map((item, revIdx) => {
-//               const realIdx  = rawItems.length - 1 - revIdx;
-//               const isActive = active.has(String(realIdx));
-//               const val      = Number(item.value ?? item);
-//               const pct      = isNaN(val) ? 30 : Math.max(12, (val / maxVal) * 100);
-
-//               return (
-//                 <motion.div
-//                   key={item.id ?? `bar-${realIdx}`}
-//                   layout
-//                   initial={{ opacity: 0, scaleY: 0 }}
-//                   animate={{ opacity: 1, scaleY: 1 }}
-//                   exit={{ opacity: 0, scaleY: 0 }}
-//                   transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-//                   className="w-full flex items-center gap-1"
-//                   style={{ originY: 1 }}
-//                 >
-//                   <span className="text-[8px] font-mono text-slate-600 w-4 text-right flex-shrink-0">
-//                     {realIdx}
-//                   </span>
-//                   <div
-//                     className={`h-5 rounded-sm flex items-center justify-end pr-1 transition-all duration-300 ${
-//                       isActive
-//                         ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]'
-//                         : realIdx === 0
-//                           ? 'bg-blue-700/70'
-//                           : 'bg-slate-700'
-//                     }`}
-//                     style={{ width: `${pct}%`, minWidth: '14px' }}
-//                   >
-//                     <span className="text-[8px] font-mono text-white/80 truncate">
-//                       {item.value ?? item}
-//                     </span>
-//                   </div>
-//                 </motion.div>
-//               );
-//             })}
-//           </AnimatePresence>
-//         </div>
-//       </div>
-
-//       {/* Swap indicator */}
-//       {active.size >= 2 && (
-//         <motion.div
-//           initial={{ opacity: 0, y: 6 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           className="flex-shrink-0 flex items-center justify-center gap-2 py-1.5 text-[10px] font-mono text-yellow-400 bg-yellow-400/5 border-t border-yellow-400/20"
-//         >
-//           <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"/>
-//           swapping indices [{[...active].join('] ↔ [')}]
-//         </motion.div>
-//       )}
-//     </div>
-//   );
-// }
-
-
-
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// data shape:
-// {
-//   array: [{id, value}, ...],   // heap array (index 0 = root)
-//   activeIndices: [i, j, ...],  // nodes being compared / swapped
-//   heapType: 'MIN' | 'MAX'      // optional, defaults MAX
-// }
-
-function buildTree(arr) {
-  if (!arr.length) return null;
-  const nodes = arr.map((item, i) => ({
-    id:    item.id ?? `h-${i}`,
-    value: item.value ?? item,
-    idx:   i,
-  }));
-  return nodes;
-}
-
-// Compute (x, y) positions for a binary tree laid out by index
-function treePositions(n) {
-  const pos = [];
-  const NODE_W = 52, LEVEL_H = 72;
-  const levels = Math.ceil(Math.log2(n + 1));
-
-  for (let i = 0; i < n; i++) {
-    const level   = Math.floor(Math.log2(i + 1));
-    const posInLv = i - (Math.pow(2, level) - 1);
-    const nodesInLv = Math.pow(2, level);
-    const totalW = Math.pow(2, levels - 1) * NODE_W;
-    const spacing = totalW / nodesInLv;
-    pos.push({
-      x: spacing * posInLv + spacing / 2,
-      y: level * LEVEL_H + 32,
-    });
-  }
-  return pos;
-}
+// HeapEngine - Visualizes Min/Max Heaps with tree structure
+// data shape: { array: [...], heapType: 'min'|'max', activeIndices: [...], narration: "..." }
 
 export default function HeapEngine({ data }) {
-  const rawItems   = data?.array        ?? [];
-  const narration  = data?.narration    ?? null;
-  const condition  = data?.condition    ?? null;
-  const active     = new Set((data?.activeIndices ?? []).map(String));
-  const heapType   = data?.heapType     ?? 'MAX';
+  const arr = data?.array ?? [];
+  const heapType = data?.heapType ?? 'min';
+  const activeIndices = data?.activeIndices ?? [];
+  const narration = data?.narration ?? null;
 
-  const nodes = useMemo(() => buildTree(rawItems), [rawItems]);
-  const pos   = useMemo(() => treePositions(rawItems.length), [rawItems.length]);
-
-  if (!rawItems.length) {
+  if (!arr.length) {
     return (
       <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono">
-        Heap is empty
+        Waiting for heap data…
       </div>
     );
   }
 
-  const n      = rawItems.length;
-  const levels = Math.ceil(Math.log2(n + 1));
-  const totalW = Math.pow(2, levels - 1) * 52 + 60;
-  const totalH = levels * 72 + 60;
+  const getVal = (item) => item?.value !== undefined ? item.value : item;
+  const activeSet = new Set(activeIndices.map(String));
 
-  // Max value for bar heights
-  const numericVals = rawItems.map(it => Number(it.value ?? it)).filter(v => !isNaN(v));
-  const maxVal = numericVals.length ? Math.max(...numericVals, 1) : 1;
+  // Calculate tree layout positions
+  const getNodePosition = (index, totalNodes) => {
+    const level = Math.floor(Math.log2(index + 1));
+    const maxNodesInLevel = Math.pow(2, level);
+    const posInLevel = index - (Math.pow(2, level) - 1);
+
+    const y = 60 + level * 90;
+    const levelWidth = 800;
+    const spacing = levelWidth / (maxNodesInLevel + 1);
+    const x = spacing * (posInLevel + 1);
+
+    return { x, y, level };
+  };
+
+  const maxLevel = Math.floor(Math.log2(arr.length));
+  const svgHeight = 60 + maxLevel * 90 + 100;
+  const svgWidth = 900;
 
   return (
-    <div className="relative flex flex-col w-full h-full overflow-auto">
-
-      {condition && (
-        <div className="absolute top-3 right-3 z-20">
-          <span className={`px-3 py-1 rounded-full border text-[11px] font-bold tracking-wide whitespace-nowrap max-w-[280px] truncate inline-block ${
-            condition.conditionTrue
-              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-              : 'bg-slate-700/40 border-slate-600/40 text-slate-400'
-          }`}>
-            {condition.conditionTrue ? '✓ ' : ''}{condition.text}{!condition.conditionTrue ? ' — no' : ''}
-          </span>
-        </div>
-      )}
-
-      {/* ── Header badge ── */}
-      <div className="flex items-center gap-2 px-4 pt-3 pb-1 flex-shrink-0">
-        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-          heapType === 'MIN'
-            ? 'text-cyan-400 border-cyan-500/40 bg-cyan-500/10'
-            : 'text-orange-400 border-orange-500/40 bg-orange-500/10'
-        }`}>
-          {heapType}-HEAP
+    <div className="flex flex-col w-full h-full overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-slate-700/30 bg-slate-950/50">
+        <span className="px-2.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/25 text-[10px] font-mono text-purple-400 tracking-widest uppercase">
+          {heapType === 'min' ? 'Min' : 'Max'} Heap · {arr.length} nodes
         </span>
-        <span className="text-[10px] font-mono text-slate-500">
-          root&nbsp;=&nbsp;
-          <span className="text-indigo-300">{rawItems[0]?.value ?? rawItems[0]}</span>
-        </span>
+        {data?.statusText && (
+          <span className="text-[11px] font-mono text-amber-300">{data.statusText}</span>
+        )}
       </div>
 
-      <div className="flex flex-1 min-h-0 gap-0">
+      {/* Tree Visualization */}
+      <div className="flex-1 flex items-center justify-center overflow-auto p-4">
+        <svg width={svgWidth} height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
+          <defs>
+            <filter id="heap-glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
 
-        {/* ── LEFT: SVG tree ── */}
-        <div className="flex-1 flex items-center justify-center overflow-hidden p-3">
-          <svg
-            width="100%"
-            height="100%"
-            viewBox={`-10 0 ${totalW} ${totalH}`}
-            preserveAspectRatio="xMidYMid meet"
-          >
-            <defs>
-              <marker id="heap-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-                <polygon points="0 0,7 2.5,0 5" fill="#334155"/>
-              </marker>
-            </defs>
+          {/* Draw edges first (parent to children) */}
+          {arr.map((_, idx) => {
+            const leftChild = 2 * idx + 1;
+            const rightChild = 2 * idx + 2;
+            const parent = getNodePosition(idx, arr.length);
 
-            {/* Edges */}
-            {nodes.map((node, i) => {
-              const leftChild  = 2 * i + 1;
-              const rightChild = 2 * i + 2;
-              return (
-                <g key={`edges-${i}`}>
-                  {leftChild < n && (
-                    <line
-                      x1={pos[i].x} y1={pos[i].y + 20}
-                      x2={pos[leftChild].x} y2={pos[leftChild].y - 20}
-                      stroke="#334155" strokeWidth="1.5"
-                      markerEnd="url(#heap-arrow)"
-                    />
-                  )}
-                  {rightChild < n && (
-                    <line
-                      x1={pos[i].x} y1={pos[i].y + 20}
-                      x2={pos[rightChild].x} y2={pos[rightChild].y - 20}
-                      stroke="#334155" strokeWidth="1.5"
-                      markerEnd="url(#heap-arrow)"
-                    />
-                  )}
-                </g>
-              );
-            })}
-
-            {/* Nodes */}
-            {nodes.map((node, i) => {
-              const isActive = active.has(String(i));
-              const isRoot   = i === 0;
-              return (
-                <g
-                  key={node.id}
-                  transform={`translate(${pos[i].x},${pos[i].y})`}
-                  style={{ transition: 'transform 0.3s ease' }}
-                >
-                  {isActive && (
-                    <circle r="26" fill="none" stroke="#818cf8" strokeWidth="2.5" opacity="0.5"/>
-                  )}
-                  <circle
-                    r="20"
-                    fill={isActive ? '#4f46e5' : isRoot ? '#1e3a5f' : '#1e293b'}
-                    stroke={isActive ? '#818cf8' : isRoot ? '#3b82f6' : '#334155'}
-                    strokeWidth={isRoot ? '2' : '1.5'}
+            return (
+              <g key={`edges-${idx}`}>
+                {leftChild < arr.length && (
+                  <line
+                    x1={parent.x}
+                    y1={parent.y}
+                    x2={getNodePosition(leftChild, arr.length).x}
+                    y2={getNodePosition(leftChild, arr.length).y}
+                    stroke={activeSet.has(String(leftChild)) ? '#a78bfa' : '#475569'}
+                    strokeWidth={activeSet.has(String(leftChild)) ? 2.5 : 1.5}
                   />
-                  {/* Index label inside node */}
-                  <text
-                    dy="-6"
-                    textAnchor="middle"
-                    fill={isActive ? '#e0e7ff' : '#e2e8f0'}
-                    fontSize="12"
-                    fontWeight="700"
-                    fontFamily="'JetBrains Mono', monospace"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {node.value}
-                  </text>
-                  <text
-                    dy="9"
-                    textAnchor="middle"
-                    fill={isActive ? '#c7d2fe' : '#475569'}
-                    fontSize="8"
-                    fontFamily="monospace"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    [{i}]
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+                )}
+                {rightChild < arr.length && (
+                  <line
+                    x1={parent.x}
+                    y1={parent.y}
+                    x2={getNodePosition(rightChild, arr.length).x}
+                    y2={getNodePosition(rightChild, arr.length).y}
+                    stroke={activeSet.has(String(rightChild)) ? '#a78bfa' : '#475569'}
+                    strokeWidth={activeSet.has(String(rightChild)) ? 2.5 : 1.5}
+                  />
+                )}
+              </g>
+            );
+          })}
 
-        {/* ── RIGHT: underlying array as bars ── */}
-        <div className="w-20 flex flex-col items-center justify-end p-3 gap-1 border-l border-slate-700/50 flex-shrink-0">
-          <span className="text-[9px] font-mono text-slate-600 mb-1 self-start">array</span>
-          <AnimatePresence mode="popLayout" initial={false}>
-            {[...rawItems].reverse().map((item, revIdx) => {
-              const realIdx  = rawItems.length - 1 - revIdx;
-              const isActive = active.has(String(realIdx));
-              const val      = Number(item.value ?? item);
-              const pct      = isNaN(val) ? 30 : Math.max(12, (val / maxVal) * 100);
+          {/* Draw nodes */}
+          {arr.map((item, idx) => {
+            const pos = getNodePosition(idx, arr.length);
+            const isActive = activeSet.has(String(idx));
+            const val = getVal(item);
+            const isRoot = idx === 0;
 
-              return (
-                <motion.div
-                  key={item.id ?? `bar-${realIdx}`}
-                  layout
-                  initial={{ opacity: 0, scaleY: 0 }}
-                  animate={{ opacity: 1, scaleY: 1 }}
-                  exit={{ opacity: 0, scaleY: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  className="w-full flex items-center gap-1"
-                  style={{ originY: 1 }}
+            return (
+              <g key={idx}>
+                <motion.circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={24}
+                  fill={isActive ? '#7c3aed' : isRoot ? '#581c87' : '#1e293b'}
+                  stroke={isActive ? '#a78bfa' : isRoot ? '#a78bfa' : '#334155'}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                  filter={isActive ? 'url(#heap-glow)' : 'none'}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3, delay: idx * 0.05 }}
+                />
+                <text
+                  x={pos.x}
+                  y={pos.y + 5}
+                  textAnchor="middle"
+                  fill={isActive || isRoot ? '#e0e7ff' : '#cbd5e1'}
+                  fontSize="14"
+                  fontWeight="700"
+                  fontFamily="'JetBrains Mono', monospace"
                 >
-                  <span className="text-[8px] font-mono text-slate-600 w-4 text-right flex-shrink-0">
-                    {realIdx}
-                  </span>
-                  <div
-                    className={`h-5 rounded-sm flex items-center justify-end pr-1 transition-all duration-300 ${
-                      isActive
-                        ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]'
-                        : realIdx === 0
-                          ? 'bg-blue-700/70'
-                          : 'bg-slate-700'
-                    }`}
-                    style={{ width: `${pct}%`, minWidth: '14px' }}
+                  {val}
+                </text>
+                <text
+                  x={pos.x}
+                  y={pos.y + 40}
+                  textAnchor="middle"
+                  fill="#64748b"
+                  fontSize="9"
+                  fontFamily="monospace"
+                >
+                  [{idx}]
+                </text>
+                {isRoot && (
+                  <text
+                    x={pos.x}
+                    y={pos.y - 35}
+                    textAnchor="middle"
+                    fill="#a78bfa"
+                    fontSize="10"
+                    fontWeight="700"
+                    fontFamily="monospace"
                   >
-                    <span className="text-[8px] font-mono text-white/80 truncate">
-                      {item.value ?? item}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                    ROOT
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* Array representation */}
+      <div className="flex-shrink-0 px-4 py-2 border-t border-slate-700/30 bg-slate-950/40">
+        <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
+          <span className="text-[9px] font-mono text-slate-500 mr-2">Array:</span>
+          {arr.map((item, idx) => {
+            const isActive = activeSet.has(String(idx));
+            return (
+              <div
+                key={idx}
+                className={`flex-shrink-0 w-10 h-8 flex items-center justify-center text-[11px] font-mono font-bold rounded border transition-all ${
+                  isActive
+                    ? 'bg-purple-900/50 border-purple-500 text-purple-200'
+                    : 'bg-slate-800 border-slate-600 text-slate-400'
+                }`}
+              >
+                {getVal(item)}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Swap indicator */}
-      {active.size >= 2 && (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex-shrink-0 flex items-center justify-center gap-2 py-1.5 text-[10px] font-mono text-yellow-400 bg-yellow-400/5 border-t border-yellow-400/20"
-        >
-          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"/>
-          swapping indices [{[...active].join('] ↔ [')}]
-        </motion.div>
-      )}
-
+      {/* Narration */}
       {narration && (
-        <div className="flex-shrink-0 flex items-start gap-2.5 px-4 py-2 border-t border-amber-500/15 bg-amber-500/5">
+        <div className="flex-shrink-0 flex items-start gap-2.5 px-5 py-2 border-t border-amber-500/15 bg-amber-500/5">
           <span className="text-amber-500/60 text-sm mt-0.5 flex-shrink-0">✎</span>
           <span className="text-[12.5px] font-medium text-amber-200/90 leading-snug">{narration}</span>
         </div>

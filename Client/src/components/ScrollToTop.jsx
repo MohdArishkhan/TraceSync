@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { FaArrowUp } from "react-icons/fa";
+import { ArrowUp } from "lucide-react";
 
-function ScrollToTop({isLightMode, setisLightMode}) {
+function ScrollToTop({ isLightMode }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const toggleVisibility = () => {
-      setVisible(window.scrollY > 300);
+      setVisible(window.scrollY > 400);
     };
 
     window.addEventListener("scroll", toggleVisibility);
@@ -20,15 +20,20 @@ function ScrollToTop({isLightMode, setisLightMode}) {
     });
   };
 
+  if (!visible) return null;
+
   return (
-    visible && (
-      <button
-        onClick={scrollToTop}
-        className={`fixed bottom-10 left-10 p-4 lg:p-6 rounded-full ${isLightMode ? "bg-[#4831D4] hover:bg-[#2f1a8d]":"bg-green-600 hover:bg-green-700"} text-white shadow-2xl shadow-black  z-50 hover:scale-90 transform duration-300 transition-all`}
-      >
-        <FaArrowUp className="w-5 h-5"/>
-      </button>
-    )
+    <button
+      onClick={scrollToTop}
+      aria-label="Scroll to top"
+      className={`fixed bottom-8 left-8 p-3 rounded-tech-lg border backdrop-blur-md z-40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl ${
+        isLightMode
+          ? "bg-white/90 border-gray-200 text-gray-800 hover:text-accent-violet hover:border-accent-violet shadow-purple-500/10"
+          : "bg-dark-surface/90 border-dark-border text-gray-200 hover:text-white hover:border-accent-violet shadow-black/80"
+      }`}
+    >
+      <ArrowUp className="w-4 h-4" />
+    </button>
   );
 }
 

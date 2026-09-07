@@ -589,7 +589,7 @@ router.post('/api/ai/analyze', async (req, res) => {
           "google/gemini-2.5-flash",
           "anthropic/claude-3.5-haiku",
           "qwen/qwen-2.5-coder-32b-instruct:free",
-          "meta-llama/llama-3.1-8b-instruct:free",
+          // "meta-llama/llama-3.1-8b-instruct:free",
         ],
         route: "fallback",
         messages: [

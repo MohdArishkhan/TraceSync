@@ -1,416 +1,216 @@
-// import React, { useMemo } from 'react';
-// import { motion, AnimatePresence } from 'framer-motion';
-// import * as d3 from 'd3-hierarchy';
+import React from 'react';
+import { motion } from 'framer-motion';
 
-// export default function DSUEngine({ data }) {
-//   // Extract data. If the worker sends it as 'array' due to generic parsing, we handle it.
-//   const parentArr = data?.parent || data?.array || [];
-//   const active = data?.activeIndices || [];
-
-//   // Parse raw array values to handle PythonTutor trace formats
-//   const cleanParents = parentArr.map(p => Number(p?.value ?? p));
-
-//   // Build the Forest layout using D3
-//   const { nodes, links, rootsCount } = useMemo(() => {
-//     if (!cleanParents.length) return { nodes: [], links: [], rootsCount: 0 };
-    
-//     const children = {};
-//     const roots = [];
-    
-//     // Build adjacency list
-//     cleanParents.forEach((p, i) => {
-//       if (p === i || isNaN(p)) {
-//         roots.push(i);
-//       } else {
-//         if (!children[p]) children[p] = [];
-//         children[p].push(i);
-//       }
-//     });
-
-//     // Recursive tree builder
-//     const buildNode = (id) => ({
-//       id: String(id),
-//       children: (children[id] || []).map(buildNode)
-//     });
-
-//     // Connect all roots to a fake invisible super-root to layout the forest
-//     const fakeRoot = {
-//       id: 'FAKE_SUPER_ROOT',
-//       children: roots.map(buildNode)
-//     };
-
-//     try {
-//       const root = d3.hierarchy(fakeRoot);
-//       const layout = d3.tree().nodeSize([65, 80]); // Spacing [X, Y]
-//       layout(root);
-      
-//       return {
-//         // Filter out the fake super-root
-//         nodes: root.descendants().filter(n => n.data.id !== 'FAKE_SUPER_ROOT'),
-//         links: root.links().filter(l => l.source.data.id !== 'FAKE_SUPER_ROOT'),
-//         rootsCount: roots.length
-//       };
-//     } catch (e) {
-//       return { nodes: [], links: [], rootsCount: 0 };
-//     }
-//   }, [cleanParents]);
-
-//   // Calculate SVG ViewBox
-//   const PAD = 50;
-//   const minX = nodes.length ? Math.min(...nodes.map(n => n.x)) - PAD : 0;
-//   const maxX = nodes.length ? Math.max(...nodes.map(n => n.x)) + PAD : 100;
-//   const minY = nodes.length ? Math.min(...nodes.map(n => n.y)) - PAD : 0;
-//   const maxY = nodes.length ? Math.max(...nodes.map(n => n.y)) + PAD : 100;
-
-//   if (!cleanParents.length) {
-//     return (
-//       <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono uppercase tracking-widest">
-//         Waiting for DSU data...
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="flex flex-col w-full h-full overflow-hidden bg-transparent">
-      
-//       {/* ── TOP: SVG FOREST GRAPH ── */}
-//       <div className="flex-1 flex items-center justify-center p-4 relative min-h-[250px]">
-//         {/* Component HUD */}
-//         <div className="absolute top-4 left-4 flex items-center gap-2">
-//           <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-[10px] font-mono text-emerald-400 uppercase tracking-widest shadow-sm">
-//             Components: <span className="font-bold text-white text-xs ml-1">{rootsCount}</span>
-//           </span>
-//         </div>
-
-//         <svg 
-//           width="100%" 
-//           height="100%" 
-//           viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} 
-//           preserveAspectRatio="xMidYMid meet"
-//         >
-//           <defs>
-//             {/* Arrow points UP to the parent in a DSU */}
-//             <marker id="dsu-arrow" markerWidth="8" markerHeight="6" refX="24" refY="3" orient="auto">
-//               <polygon points="0 0,8 3,0 6" fill="#818cf8" />
-//             </marker>
-//             <marker id="dsu-arrow-inactive" markerWidth="8" markerHeight="6" refX="24" refY="3" orient="auto">
-//               <polygon points="0 0,8 3,0 6" fill="#475569" />
-//             </marker>
-//           </defs>
-
-//           <g>
-//             {/* Edges (drawn from child to parent) */}
-//             {links.map((lnk, i) => {
-//               const isActive = active.includes(lnk.target.data.id) || active.includes(Number(lnk.target.data.id));
-//               const strokeCol = isActive ? "#818cf8" : "#475569";
-//               const marker = isActive ? "url(#dsu-arrow)" : "url(#dsu-arrow-inactive)";
-              
-//               return (
-//                 <path 
-//                   key={`link-${i}`} 
-//                   // DSU edges point from TARGET (child) UP to SOURCE (parent)
-//                   d={`M${lnk.target.x},${lnk.target.y} L${lnk.source.x},${lnk.source.y}`} 
-//                   stroke={strokeCol} 
-//                   strokeWidth={isActive ? "2.5" : "1.5"} 
-//                   fill="none" 
-//                   markerEnd={marker}
-//                   style={{ transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)" }}
-//                 />
-//               );
-//             })}
-
-//             {/* Nodes */}
-//             {nodes.map((node, i) => {
-//               const id = node.data.id;
-//               const isRoot = cleanParents[Number(id)] === Number(id);
-//               const isActive = active.includes(id) || active.includes(Number(id));
-
-//               return (
-//                 <g 
-//                   key={`node-${id}`} 
-//                   transform={`translate(${node.x},${node.y})`} 
-//                   style={{ transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
-//                 >
-//                   {/* Halo for active nodes */}
-//                   {isActive && <circle r="22" fill="none" stroke="#6366f1" strokeWidth="4" opacity="0.3" className="animate-ping" />}
-                  
-//                   {/* Node Body */}
-//                   <circle 
-//                     r="16" 
-//                     fill={isActive ? "#4f46e5" : isRoot ? "#064e3b" : "#1e293b"} 
-//                     stroke={isActive ? "#818cf8" : isRoot ? "#10b981" : "#475569"} 
-//                     strokeWidth="2.5" 
-//                   />
-                  
-//                   {/* Node ID */}
-//                   <text 
-//                     dy="4" 
-//                     textAnchor="middle" 
-//                     fill={isActive ? "#ffffff" : isRoot ? "#a7f3d0" : "#e2e8f0"} 
-//                     fontSize="11" 
-//                     fontWeight="700" 
-//                     fontFamily="'JetBrains Mono', monospace" 
-//                     style={{ pointerEvents: "none", userSelect: "none" }}
-//                   >
-//                     {id}
-//                   </text>
-                  
-//                   {/* Crown for Roots */}
-//                   {isRoot && (
-//                     <text dy="-20" textAnchor="middle" fontSize="10" fill="#34d399" opacity="0.8">★</text>
-//                   )}
-//                 </g>
-//               );
-//             })}
-//           </g>
-//         </svg>
-//       </div>
-
-//       {/* ── BOTTOM: PARENT ARRAY DOCK ── */}
-//       <div className="flex-shrink-0 flex flex-col items-center justify-center p-4 border-t border-slate-700/50 bg-slate-900/30">
-//         <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2">parent[] array</span>
-        
-//         <div className="flex flex-wrap items-center justify-center gap-2">
-//           <AnimatePresence mode="popLayout" initial={false}>
-//             {cleanParents.map((val, idx) => {
-//               const isActive = active.includes(idx) || active.includes(String(idx));
-//               const isRoot = val === idx;
-
-//               return (
-//                 <motion.div
-//                   key={`par-${idx}`}
-//                   layout
-//                   initial={{ opacity: 0, y: 20 }}
-//                   animate={{ opacity: 1, y: 0, scale: isActive ? 1.1 : 1 }}
-//                   transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-//                   className="flex flex-col items-center"
-//                 >
-//                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono font-bold text-sm border-2 transition-all duration-300 ${
-//                     isActive 
-//                       ? "bg-indigo-500 text-white border-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.6)] z-10" 
-//                       : isRoot
-//                         ? "bg-emerald-900/40 text-emerald-400 border-emerald-500/50"
-//                         : "bg-slate-800 text-slate-300 border-slate-600"
-//                   }`}>
-//                     {val}
-//                   </div>
-//                   <span className="mt-1 text-[9px] font-mono text-slate-500">{idx}</span>
-//                 </motion.div>
-//               );
-//             })}
-//           </AnimatePresence>
-//         </div>
-//       </div>
-
-//     </div>
-//   );
+// DSUEngine - Visualizes Disjoint Set Union (Union-Find) data structure
+// data shape: {
+//   nodes: [{id, parent, rank, isRoot}],
+//   activeNodes: [...],
+//   narration: "..."
 // }
 
-
-import React, { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import * as d3 from 'd3-hierarchy';
-
 export default function DSUEngine({ data }) {
-  // Extract data. If the worker sends it as 'array' due to generic parsing, we handle it.
-  const parentArr = data?.parent || data?.array || [];
-  const active = data?.activeIndices || [];
+  const nodes = data?.nodes ?? [];
+  const activeNodes = data?.activeNodes ?? data?.activeIndices ?? [];
+  const narration = data?.narration ?? null;
 
-  // Parse raw array values to handle PythonTutor trace formats
-  const cleanParents = parentArr.map(p => Number(p?.value ?? p));
-
-  // Build the Forest layout using D3
-  const { nodes, links, rootsCount } = useMemo(() => {
-    if (!cleanParents.length) return { nodes: [], links: [], rootsCount: 0 };
-    
-    const children = {};
-    const roots = [];
-    
-    // Build adjacency list
-    cleanParents.forEach((p, i) => {
-      if (p === i || isNaN(p)) {
-        roots.push(i);
-      } else {
-        if (!children[p]) children[p] = [];
-        children[p].push(i);
-      }
-    });
-
-    // Recursive tree builder
-    const buildNode = (id) => ({
-      id: String(id),
-      children: (children[id] || []).map(buildNode)
-    });
-
-    // Connect all roots to a fake invisible super-root to layout the forest
-    const fakeRoot = {
-      id: 'FAKE_SUPER_ROOT',
-      children: roots.map(buildNode)
-    };
-
-    try {
-      const root = d3.hierarchy(fakeRoot);
-      const layout = d3.tree().nodeSize([65, 80]); // Spacing [X, Y]
-      layout(root);
-      
-      return {
-        // Filter out the fake super-root
-        nodes: root.descendants().filter(n => n.data.id !== 'FAKE_SUPER_ROOT'),
-        links: root.links().filter(l => l.source.data.id !== 'FAKE_SUPER_ROOT'),
-        rootsCount: roots.length
-      };
-    } catch (e) {
-      return { nodes: [], links: [], rootsCount: 0 };
-    }
-  }, [cleanParents]);
-
-  // Calculate SVG ViewBox
-  const PAD = 50;
-  const minX = nodes.length ? Math.min(...nodes.map(n => n.x)) - PAD : 0;
-  const maxX = nodes.length ? Math.max(...nodes.map(n => n.x)) + PAD : 100;
-  const minY = nodes.length ? Math.min(...nodes.map(n => n.y)) - PAD : 0;
-  const maxY = nodes.length ? Math.max(...nodes.map(n => n.y)) + PAD : 100;
-
-  if (!cleanParents.length) {
+  if (!nodes.length) {
     return (
-      <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono uppercase tracking-widest">
-        Waiting for DSU data...
+      <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono">
+        Waiting for DSU data…
       </div>
     );
   }
 
+  const activeSet = new Set(activeNodes.map(String));
+
+  // Group nodes by their root to visualize sets
+  const roots = nodes.filter(n => n.isRoot || n.parent === n.id);
+  const sets = {};
+
+  roots.forEach(root => {
+    sets[root.id] = { root, children: [] };
+  });
+
+  nodes.forEach(node => {
+    if (!node.isRoot && node.parent !== node.id) {
+      const rootId = node.parent;
+      if (sets[rootId]) {
+        sets[rootId].children.push(node);
+      }
+    }
+  });
+
+  const setArray = Object.values(sets);
+  const NODE_SIZE = 40;
+  const SPACING_X = 180;
+  const SPACING_Y = 100;
+
   return (
-    <div className="flex flex-col w-full h-full overflow-hidden bg-transparent">
-      
-      {/* ── TOP: SVG FOREST GRAPH ── */}
-      <div className="flex-1 flex items-center justify-center p-4 relative min-h-[250px]">
-        {/* Component HUD */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-[10px] font-mono text-emerald-400 uppercase tracking-widest shadow-sm">
-            Components: <span className="font-bold text-white text-xs ml-1">{rootsCount}</span>
-          </span>
-        </div>
+    <div className="flex flex-col w-full h-full overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-slate-700/30 bg-slate-950/50">
+        <span className="px-2.5 py-0.5 rounded-md bg-orange-500/10 border border-orange-500/25 text-[10px] font-mono text-orange-400 tracking-widest uppercase">
+          Disjoint Set Union · {nodes.length} nodes · {setArray.length} sets
+        </span>
+        {data?.statusText && (
+          <span className="text-[11px] font-mono text-amber-300">{data.statusText}</span>
+        )}
+      </div>
 
-        <svg 
-          width="100%" 
-          height="100%" 
-          viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`} 
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <defs>
-            {/* Arrow points UP to the parent in a DSU */}
-            <marker id="dsu-arrow" markerWidth="8" markerHeight="6" refX="24" refY="3" orient="auto">
-              <polygon points="0 0,8 3,0 6" fill="#818cf8" />
-            </marker>
-            <marker id="dsu-arrow-inactive" markerWidth="8" markerHeight="6" refX="24" refY="3" orient="auto">
-              <polygon points="0 0,8 3,0 6" fill="#475569" />
-            </marker>
-          </defs>
+      {/* Forest Visualization */}
+      <div className="flex-1 flex items-start justify-center overflow-auto p-6">
+        <div className="flex gap-12 flex-wrap justify-center">
+          {setArray.map((set, setIdx) => {
+            const rootIsActive = activeSet.has(String(set.root.id));
+            const totalInSet = 1 + set.children.length;
 
-          <g>
-            {/* Edges (drawn from child to parent) */}
-            {links.map((lnk, i) => {
-              const isActive = active.includes(lnk.target.data.id) || active.includes(Number(lnk.target.data.id));
-              const strokeCol = isActive ? "#818cf8" : "#475569";
-              const marker = isActive ? "url(#dsu-arrow)" : "url(#dsu-arrow-inactive)";
-              
-              return (
-                <path 
-                  key={`link-${i}`} 
-                  // DSU edges point from TARGET (child) UP to SOURCE (parent)
-                  d={`M${lnk.target.x},${lnk.target.y} L${lnk.source.x},${lnk.source.y}`} 
-                  stroke={strokeCol} 
-                  strokeWidth={isActive ? "2.5" : "1.5"} 
-                  fill="none" 
-                  markerEnd={marker}
-                  style={{ transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)" }}
-                />
-              );
-            })}
+            return (
+              <motion.div
+                key={set.root.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: setIdx * 0.1 }}
+                className="flex flex-col items-center gap-4"
+              >
+                {/* Set Label */}
+                <div className="px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50">
+                  <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                    Set {setIdx + 1} · {totalInSet} node{totalInSet > 1 ? 's' : ''}
+                  </span>
+                </div>
 
-            {/* Nodes */}
-            {nodes.map((node, i) => {
-              const id = node.data.id;
-              const isRoot = cleanParents[Number(id)] === Number(id);
-              const isActive = active.includes(id) || active.includes(Number(id));
-
-              return (
-                <g 
-                  key={`node-${id}`} 
-                  transform={`translate(${node.x},${node.y})`} 
-                  style={{ transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
-                >
-                  {/* Halo for active nodes */}
-                  {isActive && <circle r="22" fill="none" stroke="#6366f1" strokeWidth="4" opacity="0.3" className="animate-ping" />}
-                  
-                  {/* Node Body */}
-                  <circle 
-                    r="16" 
-                    fill={isActive ? "#4f46e5" : isRoot ? "#064e3b" : "#1e293b"} 
-                    stroke={isActive ? "#818cf8" : isRoot ? "#10b981" : "#475569"} 
-                    strokeWidth="2.5" 
-                  />
-                  
-                  {/* Node ID */}
-                  <text 
-                    dy="4" 
-                    textAnchor="middle" 
-                    fill={isActive ? "#ffffff" : isRoot ? "#a7f3d0" : "#e2e8f0"} 
-                    fontSize="11" 
-                    fontWeight="700" 
-                    fontFamily="'JetBrains Mono', monospace" 
-                    style={{ pointerEvents: "none", userSelect: "none" }}
+                {/* Root Node */}
+                <div className="relative flex flex-col items-center">
+                  <motion.div
+                    animate={{
+                      scale: rootIsActive ? 1.1 : 1,
+                      boxShadow: rootIsActive
+                        ? '0 0 20px rgba(251, 146, 60, 0.5)'
+                        : '0 0 8px rgba(251, 146, 60, 0.2)',
+                    }}
+                    transition={{ duration: 0.3 }}
+                    style={{
+                      width: `${NODE_SIZE}px`,
+                      height: `${NODE_SIZE}px`,
+                    }}
+                    className="flex flex-col items-center justify-center rounded-lg bg-orange-900/50 border-2 border-orange-500"
                   >
-                    {id}
-                  </text>
-                  
-                  {/* Crown for Roots */}
-                  {isRoot && (
-                    <text dy="-20" textAnchor="middle" fontSize="10" fill="#34d399" opacity="0.8">★</text>
-                  )}
-                </g>
-              );
-            })}
-          </g>
-        </svg>
-      </div>
+                    <span className="text-xs font-mono font-bold text-orange-200">
+                      {set.root.id}
+                    </span>
+                    {set.root.rank !== undefined && (
+                      <span className="text-[8px] font-mono text-orange-400/60">
+                        r:{set.root.rank}
+                      </span>
+                    )}
+                  </motion.div>
 
-      {/* ── BOTTOM: PARENT ARRAY DOCK ── */}
-      <div className="flex-shrink-0 flex flex-col items-center justify-center p-4 border-t border-slate-700/50 bg-slate-900/30">
-        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2">parent[] array</span>
-        
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {cleanParents.map((val, idx) => {
-              const isActive = active.includes(idx) || active.includes(String(idx));
-              const isRoot = val === idx;
-
-              return (
-                <motion.div
-                  key={`par-${idx}`}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0, scale: isActive ? 1.1 : 1 }}
-                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                  className="flex flex-col items-center"
-                >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono font-bold text-sm border-2 transition-all duration-300 ${
-                    isActive 
-                      ? "bg-indigo-500 text-white border-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.6)] z-10" 
-                      : isRoot
-                        ? "bg-emerald-900/40 text-emerald-400 border-emerald-500/50"
-                        : "bg-slate-800 text-slate-300 border-slate-600"
-                  }`}>
-                    {val}
+                  <div className="mt-1 px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/30">
+                    <span className="text-[8px] font-mono text-orange-400 uppercase tracking-wide">
+                      Root
+                    </span>
                   </div>
-                  <span className="mt-1 text-[9px] font-mono text-slate-500">{idx}</span>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+
+                  {/* Children */}
+                  {set.children.length > 0 && (
+                    <div className="relative mt-8 flex gap-3">
+                      {/* Parent lines */}
+                      <svg
+                        className="absolute"
+                        style={{
+                          top: `-${SPACING_Y * 0.6}px`,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: `${set.children.length * (NODE_SIZE + 12)}px`,
+                          height: `${SPACING_Y * 0.6}px`,
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {set.children.map((child, childIdx) => {
+                          const childX =
+                            childIdx * (NODE_SIZE + 12) + NODE_SIZE / 2;
+                          const parentX = (set.children.length * (NODE_SIZE + 12)) / 2;
+                          const isActive = activeSet.has(String(child.id));
+
+                          return (
+                            <line
+                              key={child.id}
+                              x1={parentX}
+                              y1={0}
+                              x2={childX}
+                              y2={SPACING_Y * 0.6}
+                              stroke={isActive ? '#fb923c' : '#64748b'}
+                              strokeWidth={isActive ? 2.5 : 1.5}
+                            />
+                          );
+                        })}
+                      </svg>
+
+                      {set.children.map((child) => {
+                        const childIsActive = activeSet.has(String(child.id));
+
+                        return (
+                          <motion.div
+                            key={child.id}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            style={{
+                              width: `${NODE_SIZE}px`,
+                              height: `${NODE_SIZE}px`,
+                            }}
+                            className={`flex flex-col items-center justify-center rounded-lg border-2 transition-all ${
+                              childIsActive
+                                ? 'bg-orange-800/60 border-orange-400 shadow-lg shadow-orange-500/40'
+                                : 'bg-slate-800 border-slate-600'
+                            }`}
+                          >
+                            <span
+                              className={`text-xs font-mono font-bold ${
+                                childIsActive ? 'text-orange-200' : 'text-slate-400'
+                              }`}
+                            >
+                              {child.id}
+                            </span>
+                            {child.rank !== undefined && (
+                              <span className="text-[8px] font-mono text-slate-500">
+                                r:{child.rank}
+                              </span>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
+      {/* Legend */}
+      <div className="flex-shrink-0 flex items-center gap-4 px-4 py-2 border-t border-slate-700/25 bg-slate-950/40">
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded border-2 border-orange-500 bg-orange-900/50" />
+          <span className="text-[9px] font-mono text-slate-500">Root (parent)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded border-2 border-slate-600 bg-slate-800" />
+          <span className="text-[9px] font-mono text-slate-500">Child node</span>
+        </div>
+        <div className="text-[9px] font-mono text-slate-600">
+          r: rank value
+        </div>
+      </div>
+
+      {/* Narration */}
+      {narration && (
+        <div className="flex-shrink-0 flex items-start gap-2.5 px-5 py-2 border-t border-amber-500/15 bg-amber-500/5">
+          <span className="text-amber-500/60 text-sm mt-0.5 flex-shrink-0">✎</span>
+          <span className="text-[12.5px] font-medium text-amber-200/90 leading-snug">{narration}</span>
+        </div>
+      )}
     </div>
   );
 }

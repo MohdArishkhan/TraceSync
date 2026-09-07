@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { FiUser, FiMail, FiLock } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../Context/AppContext";
+import { signUp } from "../lib/supabase";
 
-const Register = ({ isLightMode, setisLightMode }) => {
+const Register = ({ isLightMode }) => {
   const Navigate = useNavigate();
-  const { BACKEND_URL, setisLoggedIn, isLoggedIn, userData, getUserData } = useAppContext();
   const [formData, setFormdata] = useState({
     name: "",
     email: "",
@@ -17,49 +15,24 @@ const Register = ({ isLightMode, setisLightMode }) => {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    // BYPASS - Auto register without checking
-    toast.success("Registered Successfully...");
-    setTimeout(() => {
+    if (!formData.name || !formData.email || !formData.password) {
+      toast.error("Please fill all details.");
+      return;
+    }
+
+    try {
+      const { session } = await signUp(formData.email, formData.password, formData.name);
+      setFormdata({ name: "", email: "", password: "" });
+      toast.success(session ? "Account created successfully." : "Check your email to confirm your account.");
       Navigate("/LoginPage");
-    }, 500);
-
-    await axios
-      .post(`${BACKEND_URL}/api/auth/register`, formData, {
-        withCredentials: true,
-      })
-      .then((myData) => {
-        // console.log("Form data sent to Backend: ", myData.data);
-        setFormdata({ name: "", email: "", password: "" });
-
-        // if (myData.data.status === 1) {
-          toast.success("Registered Successfully...");
-          // setisLoggedIn(true);
-          // getUserData();
-          Navigate("/LoginPage");
-        // } else {
-          // toast.error("Registration not done...");
-          // setisLoggedIn(false);
-        // }
-      })
-      .catch((e) => {
-        // console.log(`Form data not sent to Backend...`);
-        toast.error("Something went wrong...");
-      });
+    } catch (error) {
+      toast.error(error.message || "Registration failed. Please try again.");
+    }
   }
 
   function handleChange(e) {
     setFormdata({ ...formData, [e.target.name]: e.target.value });
   }
-
-  function showToaster() {
-    if (!formData.email || !formData.password || !formData.name) {
-      toast.error(`Please fill all details.`);
-    }
-  }
-
-  useEffect(() => {
-    // console.log("Form Data Updated: ", formData);
-  }, [formData]);
 
   return (
     <div
@@ -181,7 +154,6 @@ const Register = ({ isLightMode, setisLightMode }) => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
             <button
               type="submit"
-              onClick={showToaster}
               className={`w-full sm:w-auto px-6 py-3 rounded-lg font-medium text-white transition ${
                 isLightMode
                   ? "bg-blue-600 hover:bg-blue-700"
@@ -191,13 +163,10 @@ const Register = ({ isLightMode, setisLightMode }) => {
               Register
             </button>
 
-            <button
-              type="button"
-              className={`text-sm hover:underline ${
-                isLightMode ? "text-blue-600" : "text-green-400"
-              }`}
-            >
-              <button onClick={()=>Navigate("/LoginPage")} type="button">Already have an account?</button>
+            <button onClick={() => Navigate("/LoginPage")} type="button" className={`text-sm hover:underline ${
+              isLightMode ? "text-blue-600" : "text-green-400"
+            }`}>
+              Already have an account?
             </button>
           </div>
         </form>

@@ -3,63 +3,105 @@ import gsap from "gsap";
 import React, { useRef, useEffect } from "react";
 import CodeDoodleVideo from "../assets/CodeDoodle.mp4";
 import ScrollTrigger from "gsap/ScrollTrigger";
+import { PlayCircle, ShieldCheck } from "lucide-react";
 gsap.registerPlugin(ScrollTrigger);
 
-function Video({ isLightMode, setisLightMode }) {
-  const h1Ref = useRef(null);
-  useGSAP(() => {
-    gsap.to(h1Ref.current, {
-      scale: 1.4,
-      scrollTrigger: {
-        trigger: h1Ref.current,
-        start: "top center",
-        end: "bottom top",
-        scrub: true,
-        // markers : true,
-      },
-      ease: "power1.out",
-    });
-  }, []);
-
+function Video({ isLightMode }) {
+  const containerRef = useRef(null);
   const videoRef = useRef(null);
 
   useEffect(() => {
     const video = videoRef.current;
+    if (!video) return;
 
-    ScrollTrigger.create({
+    const trigger = ScrollTrigger.create({
       trigger: video,
       start: "top 80%",
       onEnter: () => {
-        video.play();
+        video.play().catch(() => {});
       },
       onLeaveBack: () => {
         video.pause();
         video.currentTime = 0;
       },
-      // markers:true,
     });
+
+    return () => trigger.kill();
   }, []);
 
   return (
-    <div
-      className={`flex items-center justify-center px-4 md:py-32 sm:py-20 sm:px-20 ${
-        isLightMode ? "bg-white" : "bg-gray-950"
-      } overflow-hidden`}
+    <section
+      className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden ${
+        isLightMode ? "bg-white" : "bg-dark-bg"
+      }`}
     >
-      <div
-        ref={h1Ref}
-        className="flex items-center justify-center w-full max-w-5xl rounded-3xl"
-      >
-        <video
-          src={CodeDoodleVideo}
-          ref={videoRef}
-          muted
-          loop
-          playsInline
-          className="w-full h-auto rounded-2xl object-contain"
-        />
+      <div className="max-w-5xl mx-auto text-center">
+        {/* Section Badge */}
+        <div className="inline-flex items-center gap-2 font-mono text-xs tracking-widest uppercase text-accent-violet mb-3">
+          <PlayCircle className="w-3.5 h-3.5" />
+          <span>Interactive Preview</span>
+        </div>
+
+        <h2
+          className={`font-mono text-2xl sm:text-3xl md:text-4xl font-bold mb-4 tracking-tight ${
+            isLightMode ? "text-gray-900" : "text-white"
+          }`}
+        >
+          See CodeDoodle in Action
+        </h2>
+
+        <p
+          className={`text-sm sm:text-base max-w-xl mx-auto mb-10 ${
+            isLightMode ? "text-gray-600" : "text-gray-400"
+          }`}
+        >
+          Experience live code synchronization, WebRTC calls, and intelligent code review in action.
+        </p>
+
+        {/* Video Card Container */}
+        <div
+          ref={containerRef}
+          className={`relative rounded-tech-lg border overflow-hidden backdrop-blur-sm transition-all shadow-2xl ${
+            isLightMode
+              ? "border-gray-200 bg-gray-50 shadow-purple-500/5"
+              : "border-dark-border bg-dark-surface shadow-black/80"
+          }`}
+        >
+          {/* Top Frame Bar */}
+          <div
+            className={`flex items-center justify-between px-4 py-2.5 border-b select-none ${
+              isLightMode ? "bg-gray-100 border-gray-200" : "bg-dark-bg/90 border-dark-border"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+            </div>
+
+            <span className="font-mono text-xs text-gray-500 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>codedoodle-live-demo.mp4</span>
+            </span>
+
+            <div className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent-violet/10 text-accent-violet">
+              HD 60FPS
+            </div>
+          </div>
+
+          {/* HTML5 Video */}
+          <video
+            src={CodeDoodleVideo}
+            ref={videoRef}
+            muted
+            loop
+            playsInline
+            controls
+            className="w-full h-auto object-cover max-h-[600px]"
+          />
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 

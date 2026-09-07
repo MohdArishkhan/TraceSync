@@ -4,19 +4,22 @@ import React from 'react';
 //  IMPORT EVERY REAL ENGINE — no inline duplicates, single source of truth
 // ─────────────────────────────────────────────────────────────────────────────
 import GridEngine          from './GridEngine';
-import LinearArrayEngine    from './LinearArrayEngine';
-import SvgTreeEngine        from './SvgTreeEngine';
-import PhysicsGraphEngine   from './PhysicsGraphEngine';
-import LinkedListEngine     from './LinkedListEngine';
-import StackEngine          from './StackEngine';
-import QueueEngine          from './QueueEngine';
-import DequeEngine          from './DequeEngine';
-import DSUEngine            from './DSUEngine';
-import SegmentTreeEngine    from './SegmentTreeEngine';
-import RecursionTreeEngine  from './RecursionTreeEngine';
-import NQueensEngine        from './NQueensEngine';
-import HashMapEngine        from './HashMapEngine';
-import HeapEngine           from './HeapEngine';
+import LinearArrayEngine   from './LinearArrayEngine';
+import SvgTreeEngine       from './SvgTreeEngine';
+import PhysicsGraphEngine  from './PhysicsGraphEngine';
+import LinkedListEngine    from './LinkedListEngine';
+import StackEngine         from './StackEngine';
+import QueueEngine         from './QueueEngine';
+import DequeEngine         from './DequeEngine';
+import DSUEngine           from './DSUEngine';
+import SegmentTreeEngine   from './SegmentTreeEngine';
+import RecursionTreeEngine from './RecursionTreeEngine';
+import NQueensEngine       from './NQueensEngine';
+import HashMapEngine       from './HashMapEngine';
+import HeapEngine          from './HeapEngine';
+
+// Optional/assumed imports based on usage in the component
+import { motion } from 'framer-motion'; 
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  RANK SYSTEM — fallback only, used when no vizSpec is present
@@ -47,21 +50,21 @@ const EngineRenderer = ({ structure, compact = false }) => {
   const dataWithSpec = structure.vizSpec ? { ...structure.data, vizSpec: structure.vizSpec } : structure.data;
 
   switch (type) {
-    case 'N_QUEENS':      return <NQueensEngine data={dataWithSpec} />;
-    case 'SEGMENT_TREE':  return <SegmentTreeEngine data={dataWithSpec} />;
+    case 'N_QUEENS':       return <NQueensEngine data={dataWithSpec} />;
+    case 'SEGMENT_TREE':   return <SegmentTreeEngine data={dataWithSpec} />;
     case 'DSU':            return <DSUEngine data={dataWithSpec} />;
     case 'RECURSION_TREE': return <RecursionTreeEngine data={dataWithSpec} />;
-    case 'TREE':            return <SvgTreeEngine data={dataWithSpec} />;
-    case 'LINKED_LIST':     return <LinkedListEngine data={dataWithSpec} />;
-    case 'GRAPH':            return <PhysicsGraphEngine data={dataWithSpec} />;
-    case 'STACK':            return <StackEngine data={dataWithSpec} />;
-    case 'QUEUE':            return <QueueEngine data={dataWithSpec} />;
-    case 'DEQUE':            return <DequeEngine data={dataWithSpec} />;
-    case 'HEAP':             return <HeapEngine data={dataWithSpec} />;
+    case 'TREE':           return <SvgTreeEngine data={dataWithSpec} />;
+    case 'LINKED_LIST':    return <LinkedListEngine data={dataWithSpec} />;
+    case 'GRAPH':          return <PhysicsGraphEngine data={dataWithSpec} />;
+    case 'STACK':          return <StackEngine data={dataWithSpec} />;
+    case 'QUEUE':          return <QueueEngine data={dataWithSpec} />;
+    case 'DEQUE':          return <DequeEngine data={dataWithSpec} />;
+    case 'HEAP':           return <HeapEngine data={dataWithSpec} />;
     case 'HASH_MAP':
-    case 'SET':              return <HashMapEngine data={dataWithSpec} />;
-    case 'MATRIX':            return <GridEngine data={dataWithSpec} compact={compact} />;
-    case 'ARRAY':             return <LinearArrayEngine data={dataWithSpec} compact={compact} />;
+    case 'SET':            return <HashMapEngine data={dataWithSpec} />;
+    case 'MATRIX':         return <GridEngine data={dataWithSpec} compact={compact} />;
+    case 'ARRAY':          return <LinearArrayEngine data={dataWithSpec} compact={compact} />;
     default:
       return (
         <div className="flex items-center justify-center w-full h-full text-slate-500 text-sm font-mono">
@@ -143,18 +146,18 @@ function AuxMiniCard({ struct }) {
 //  Primary engine owns the full canvas. Auxiliary data (when truly needed)
 //  appears as small floating cards docked to a corner of the SAME frame.
 // ─────────────────────────────────────────────────────────────────────────────
-export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVariables, vizSpec: vizSpecProp }) {
+export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVariables, vizSpec: vizSpecProp, T, GlobalStyles }) {
   if (!currentFrame || !currentFrame.structures) {
     return (
       <>
-        <GlobalStyles />
+        {GlobalStyles && <GlobalStyles />}
         <div
           className="flex flex-col items-center justify-center w-full h-full relative overflow-hidden"
-          style={{ background: T.bg }}
+          style={{ background: T?.bg || '#0f172a' }}
         >
           {/* Ambient radial */}
           <div className="absolute inset-0 pointer-events-none"
-            style={{ background: `radial-gradient(ellipse at center, ${T.active.dim}, transparent 65%)` }}
+            style={{ background: `radial-gradient(ellipse at center, ${T?.active?.dim || 'rgba(99,102,241,0.1)'}, transparent 65%)` }}
           />
           {/* Scanline */}
           <motion.div
@@ -169,16 +172,16 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
             transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
             className="w-14 h-14 rounded-full mb-6"
             style={{
-              border: `3px solid ${T.border}`,
-              borderTopColor: T.active.core,
-              boxShadow: `0 0 20px ${T.active.glow}`,
+              border: `3px solid ${T?.border || '#334155'}`,
+              borderTopColor: T?.active?.core || '#6366f1',
+              boxShadow: `0 0 20px ${T?.active?.glow || 'rgba(99,102,241,0.5)'}`,
             }}
           />
           <motion.p
             animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ repeat: Infinity, duration: 1.8 }}
             className="mono text-sm font-extrabold uppercase tracking-[0.25em]"
-            style={{ color: T.active.core, textShadow: `0 0 16px ${T.active.glow}` }}
+            style={{ color: T?.active?.core || '#6366f1', textShadow: `0 0 16px ${T?.active?.glow || 'rgba(99,102,241,0.5)'}` }}
           >
             Tracing Execution…
           </motion.p>
@@ -203,7 +206,7 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
         <div className="flex-1 relative">
           <EngineRenderer structure={{ type: aiFallbackEngine, data: mock }} compact={false} />
         </div>
-      </>
+      </div>
     );
   }
 
@@ -211,18 +214,18 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
   if (structures.length === 0) {
     return (
       <>
-        <GlobalStyles />
-        <div className="relative w-full h-full flex items-center justify-center" style={{ background: T.bg }}>
+        {GlobalStyles && <GlobalStyles />}
+        <div className="relative w-full h-full flex items-center justify-center" style={{ background: T?.bg || '#0f172a' }}>
           <FloatingVariables variables={currentFrame.variables} />
           <motion.div
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
             className="px-6 py-3.5 rounded-2xl mono text-sm tracking-wide"
             style={{
-              background: T.panel,
-              border: `1px solid ${T.border}`,
+              background: T?.panel || '#1e293b',
+              border: `1px solid ${T?.border || '#334155'}`,
               backdropFilter: 'blur(20px)',
-              color: T.textSec,
+              color: T?.textSec || '#94a3b8',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             }}
           >
@@ -362,72 +365,7 @@ export default function PolymorphicRouter({ currentFrame, aiFallbackEngine, aiVa
             <AuxMiniCard key={s.id} struct={s} />
           ))}
         </div>
-
-        {/* ── AUXILIARY STRIP ── */}
-        <AnimatePresence>
-          {auxiliary.length > 0 && (
-            <motion.div
-              initial={{ y: '100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="poly-scroll flex gap-4 overflow-x-auto flex-shrink-0 p-4"
-              style={{
-                height: 'min(38%, 320px)',
-                minHeight: 240,
-                borderTop: `1px solid ${T.border}`,
-                background: T.panel,
-                backdropFilter: 'blur(28px)',
-                boxShadow: `0 -24px 60px rgba(0,0,0,0.5)`,
-              }}
-            >
-              {auxiliary.map((struct, i) => (
-                <motion.div
-                  key={struct.id}
-                  initial={{ opacity: 0, y: 20, scale: 0.94 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 340, damping: 28, delay: i * 0.06 }}
-                  className="relative flex flex-col rounded-2xl overflow-hidden flex-1 group"
-                  style={{
-                    minWidth: 290,
-                    maxWidth: 440,
-                    background: T.surface,
-                    border: `1px solid ${T.border}`,
-                    boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
-                  }}
-                >
-                  {/* hover shimmer */}
-                  <div
-                    className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-400"
-                    style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.03), transparent)' }}
-                  />
-                  {/* header */}
-                  <div
-                    className="flex justify-between items-center px-4 py-2.5"
-                    style={{ borderBottom: `1px solid ${T.border}`, background: T.panel, backdropFilter: 'blur(16px)' }}
-                  >
-                    <span className="mono text-[10px] font-bold uppercase tracking-widest" style={{ color: T.textSec }}>
-                      {struct.type}
-                    </span>
-                    <motion.span
-                      animate={{ opacity: [0.7, 1, 0.7] }}
-                      transition={{ repeat: Infinity, duration: 2.5 }}
-                      className="mono text-xs font-black"
-                      style={{ color: T.accept.core, textShadow: `0 0 8px ${T.accept.glow}` }}
-                    >
-                      {struct.name}
-                    </motion.span>
-                  </div>
-                  {/* engine */}
-                  <div className="flex-1 relative overflow-hidden">
-                    <EngineRenderer structure={struct} compact={true} />
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
+      )}
+    </div>
   );
 }

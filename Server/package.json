@@ -5,6 +5,8 @@
     "@babel/traverse": "^8.0.0",
     "@babel/types": "^8.0.0",
     "@google/generative-ai": "^0.24.1",
+    "@supabase/ssr": "^0.12.6",
+    "@supabase/supabase-js": "^2.115.0",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.11.1",
