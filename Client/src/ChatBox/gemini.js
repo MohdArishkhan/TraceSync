@@ -1,57 +1,3 @@
-// import {GoogleGenerativeAI} from '@google/generative-ai';
-
-
-// const apiKey = "AIzaSyCWfWJ7Ne25n3NdxHCEOn92qlJUXQr6BIY";
-// const genAI = new GoogleGenerativeAI(apiKey);
-
-// async function generateContent(prompt){
-//     try{
-//         const model = await genAI.getGenerativeModel({model : 'gemini-1.5-flash'});
-
-//         const chatSession = model.startChat({
-//             generationConfig : {
-//                 temperature : 1,
-//                 topP : 0.95,
-//                 topK : 64,
-//                 maxOutputTokens : 8192,
-//             },
-//             history : [],
-//         });
-
-//         const result = await chatSession.sendMessage(prompt);
-//         return result.response.text();
-//         }catch(error){
-//             throw new Error("This is my Error !");
-//         }
-// }
-
-// export default generateContent;
-
-
-
-
-// import { GoogleGenAI } from "@google/genai";
-
-// const API_KEY="AIzaSyDOv0HjtrCpkNlbso1VDmC30kZJHvNP7i0";
-
-// const ai = new GoogleGenAI({ apiKey: API_KEY});
-
-// async function generateContent(prompt) {
-//   const response = await ai.models.generateContent({
-//     model: "gemini-2.5-flash",
-//     contents: prompt,
-//   });
-//   // console.log(response.text);
-//   return response.text;
-// }
-
-// export default generateContent;
-
-
-
-
-
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = import.meta.env.VITE_GEMINI_KEY;
@@ -69,7 +15,7 @@ function stripMarkdown(text) {
 
 async function generateContent(prompt) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
     return stripMarkdown(result.response.text());
   } catch (error) {
@@ -80,7 +26,7 @@ async function generateContent(prompt) {
 
 async function* generateStreamingContent(prompt) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const result = await model.generateContentStream({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -98,10 +44,10 @@ async function* generateStreamingContent(prompt) {
 
 async function generateSuggestions(conversationHistory) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
-You are Codedoodle. Based on the conversation below, suggest 3 helpful follow-up questions.
+You are TraceSync. Based on the conversation below, suggest 3 helpful follow-up questions.
 Rules:
 - 4–8 words each
 - Conversational
@@ -110,7 +56,7 @@ Rules:
 
 Conversation:
 ${conversationHistory
-      .map((chat) => `User: ${chat.user}\nCodedoodle: ${chat.bot}`)
+      .map((chat) => `User: ${chat.user}\nTraceSync: ${chat.bot}`)
       .join("\n\n")}
 `;
 

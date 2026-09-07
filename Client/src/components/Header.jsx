@@ -90,7 +90,7 @@ export default function Header({ isLightMode, setisLightMode }) {
 
           {/* Theme Toggle + Auth Buttons (Desktop) */}
           <div className="hidden lg:flex items-center gap-4">
-            <button
+            {/* <button
               onClick={toggleThemeInDB}
               className={`p-2 rounded-tech border transition-all duration-200 ${
                 isLightMode
@@ -104,7 +104,7 @@ export default function Header({ isLightMode, setisLightMode }) {
               ) : (
                 <Sun className="w-4 h-4 text-gray-300" />
               )}
-            </button>
+            </button> */}
 
             {userData ? (
               <Profile userName={userData.name} isLightMode={isLightMode} setisLightMode={setisLightMode} />

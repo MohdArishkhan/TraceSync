@@ -1,31 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, ShieldCheck } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAppContext } from "../Context/AppContext";
-import axios from "axios";
+import { signOut } from "../lib/supabase";
 
 const Profile = ({ userName, isLightMode }) => {
   const [showList, setShowList] = useState(false);
-  const { BACKEND_URL, getUserData, userData, setUserData, setisLoggedIn, isLoggedIn } = useAppContext();
+  const { setUserData, setisLoggedIn, isLoggedIn } = useAppContext();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    getUserData();
-  }, []);
 
   async function logOutUser() {
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, {
-        withCredentials: true,
-      });
-
-      if (response.data.status) {
-        setisLoggedIn(false);
-        setUserData(null);
-        navigate("/");
-      }
-    } catch (e) {
-      console.error("Error logging out user:", e);
+      await signOut();
+      setisLoggedIn(false);
+      setUserData(null);
+      navigate("/");
+    } catch (error) {
+      console.error("Error logging out user:", error);
     }
   }
 

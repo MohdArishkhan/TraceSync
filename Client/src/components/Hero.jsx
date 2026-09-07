@@ -49,21 +49,7 @@ function Hero({ isLightMode }) {
         {/* Hero Content */}
         <div className="relative max-w-5xl w-full mx-auto text-center space-y-6 sm:space-y-8 z-10">
 
-          {/* Tech Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-mono backdrop-blur-md"
-            style={{
-              borderColor: isLightMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.4)",
-              backgroundColor: isLightMode ? "rgba(255, 255, 255, 0.8)" : "rgba(26, 26, 36, 0.6)",
-              color: isLightMode ? "#7C3AED" : "#A78BFA",
-            }}
-          >
-            <Sparkles className="w-3.5 h-3.5 animate-pulse text-accent-violet" />
-            <span>Next-Gen Collaborative IDE & Voice</span>
-          </motion.div>
+          
 
           {/* Main Headline */}
           <motion.h1

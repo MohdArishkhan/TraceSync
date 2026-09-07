@@ -1,6 +1,7 @@
 import React from "react";
 import { Github, Linkedin, Instagram, ArrowLeft, Code, Sparkles, Terminal } from "lucide-react";
-
+import coding from "../assets/coding.png";
+import coder from "../assets/coder.png";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -8,7 +9,7 @@ const developers = [
   {
     name: "Mohd Arish Khan",
     role: "Full-Stack Engineer & DSA Lead",
-    // image: Mohd Arish Khan,
+    image: coding,
     badge: "BACKEND & DSA",
     github: "https://github.com/MohdArishkhan",
     linkedin: "https://www.linkedin.com/in/mohd-arish-khan",
@@ -25,7 +26,7 @@ const developers = [
   {
     name: "Salman Khan",
     role: "Frontend Architect & UI/UX",
-    // image: Salman Khan,
+    image: coder,
     badge: "FRONTEND & DESIGN",
     // github: "https://github.com/salmankhan",
     // linkedin: "https://www.linkedin.com/in/salman-khan",

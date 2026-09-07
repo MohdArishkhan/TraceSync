@@ -4,9 +4,6 @@ import { onAuthStateChange, supabase } from "../lib/supabase";
 import { ensurePersonalProject } from "../lib/workspace";
 const AppContext = createContext();
 
-// TEMPORARY DEVELOPMENT BYPASS: set to false to require Supabase login again.
-const TEMPORARY_AUTH_BYPASS = true;
-
 export const useAppContext = () => useContext(AppContext);
 
 export const AppProvider = (props) => {
@@ -16,24 +13,6 @@ export const AppProvider = (props) => {
   const [authLoading, setAuthLoading] = useState(true);
 
   const clearUser = () => {
-    if (TEMPORARY_AUTH_BYPASS) {
-      setisLoggedIn(true);
-      setUserData({
-        id: "demo-user",
-        name: "Demo User",
-        email: "demo@example.com",
-        isAccountVerified: true,
-        isLightMode: false,
-        allFiles: [],
-        allChats: [],
-        allRecycleBinFiles: [],
-        workspaceId: null,
-        projectId: null,
-        project: null,
-      });
-      return;
-    }
-
     setisLoggedIn(false);
     setUserData(null);
   };
@@ -44,13 +23,28 @@ export const AppProvider = (props) => {
       return;
     }
 
-    const { data: profile, error } = await supabase
+    let { data: profile, error } = await supabase
       .from("profiles")
       .select("id, display_name, avatar_path, theme, created_at, updated_at")
       .eq("id", user.id)
       .maybeSingle();
 
     if (error) throw error;
+
+    // Recover gracefully when the database trigger was not applied before signup.
+    if (!profile) {
+      const { data: createdProfile, error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          display_name: user.user_metadata?.display_name || user.email?.split("@")[0] || "User",
+        })
+        .select("id, display_name, avatar_path, theme, created_at, updated_at")
+        .single();
+
+      if (profileError) throw profileError;
+      profile = createdProfile;
+    }
 
     const personalProject = await ensurePersonalProject();
 
@@ -127,8 +121,6 @@ export const AppProvider = (props) => {
   }
 
   useEffect(() => {
-    getAuthState();
-
     const { data: { subscription } } = onAuthStateChange(async (_event, session) => {
       try {
         await loadProfile(session?.user ?? null);
@@ -139,6 +131,8 @@ export const AppProvider = (props) => {
         setAuthLoading(false);
       }
     });
+
+    getAuthState();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -152,6 +146,7 @@ export const AppProvider = (props) => {
     setUserData,
     getUserData,
     getAuthState,
+    loadProfile,
     addFileToRecycleBin
   };
 

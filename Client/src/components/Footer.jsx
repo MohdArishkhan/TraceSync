@@ -5,11 +5,11 @@ const Footer = ({ isLightMode }) => {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = [
-    { label: "Docs", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "API", href: "#" },
-    { label: "Pricing", href: "#" },
-    { label: "Support", href: "#" },
+    // { label: "Docs", href: "#" },
+    // { label: "Blog", href: "#" },
+    // { label: "API", href: "#" },
+    // { label: "Pricing", href: "#" },
+    // { label: "Support", href: "#" },
   ];
 
   return (
@@ -113,7 +113,7 @@ const Footer = ({ isLightMode }) => {
               isLightMode ? "text-gray-500" : "text-gray-500"
             }`}
           >
-            © {currentYear} CodeDoodle. Built by{" "}
+            © {currentYear} TraceSync. Built by{" "}
             <button
               onClick={() =>
                 window.open("", "_blank", "noopener,noreferrer")

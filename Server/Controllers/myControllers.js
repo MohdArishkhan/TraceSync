@@ -2,8 +2,34 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const myModel = require("../Models/Schema");
 const { transporter, transporter2 } = require("../Config/nodemailer");
+const { supabaseAdmin } = require("../Config/supabase");
 
 require("dotenv").config();
+
+const checkEmailExists = async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+
+  if (!email) {
+    return res.status(400).json({ exists: false, message: "Email is required" });
+  }
+
+  try {
+    const legacyUser = await myModel.exists({ email });
+    if (legacyUser) return res.json({ exists: true });
+
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (error) throw error;
+
+    const exists = data.users.some((user) => user.email?.toLowerCase() === email);
+    return res.json({ exists });
+  } catch (error) {
+    console.error("Email availability check failed:", error.message);
+    return res.status(500).json({ exists: false, message: "Unable to check email" });
+  }
+};
 
 const register = async (req, res) => {
   const { name, email, password } = req.body;
@@ -38,31 +64,6 @@ const register = async (req, res) => {
   sameSite: 'None',     // ✅ Required for cross-site
   maxAge: 24 * 60 * 60 * 1000 // optional
 });
-
-
-    //sending welcome MAIL message to anshu
-
-  //   const mailDetails = {
-  //     from: process.env.SENDER_EMAIL,
-  //     to: email,
-  //     subject: "Welcome to CodeDoodle!",
-  //     html: `
-  //   <div style="font-family: Arial, sans-serif; padding: 20px;">
-  //     <h2 style="color: #2c3e50;">Hello,</h2>
-  //     <p><strong>${name}</strong> has just signed in to <strong>CodeDoodle</strong> — a collaborative platform where developers can:</p>
-  //     <ul style="margin: 16px 0; padding-left: 20px;">
-  //       <li>Connect with other developers</li>
-  //       <li>Live-code in real-time</li>
-  //       <li>Save and share coding sessions</li>
-  //       <li>Get AI-powered code reviews</li>
-  //     </ul>
-  //     <p>We're excited to have you on board. Let’s build something amazing together!</p>
-  //     <p style="margin-top: 30px;">Happy Coding!<br/><strong>– The CodeDoodle Team</strong></p>
-  //   </div>
-  // `,
-  //   };
-
-  //   await transporter.sendMail(mailDetails);
 
     return res.send({
       status: 1,
@@ -200,14 +201,14 @@ const sendVerifyOTP = async (req, res) => {
       subject: "Account Verification - OTP Inside",
       html: `
     <div style="font-family: Arial, sans-serif; padding: 16px;">
-      <h2 style="color: #333;">Welcome to CodeDoodle!</h2>
+      <h2 style="color: #333;">Welcome to TraceSync!</h2>
       <p>To verify your account, please use the OTP provided below:</p>
       <div style="margin: 20px 0; padding: 12px; border: 2px solid red; display: inline-block; font-size: 24px; font-weight: bold; color: red;">
         ${otp}
       </div>
       <p>Enter this OTP on the verification page to complete your registration.</p>
       <p>If you did not request this, please ignore this email.</p>
-      <p style="margin-top: 20px;">Thanks,<br/>The CodeDoodle Team</p>
+      <p style="margin-top: 20px;">Thanks,<br/>The TraceSync Team</p>
     </div>
   `,
     };
@@ -330,7 +331,7 @@ const verifyOTPforPasswordReset = async (req, res) => {
 
       <p style="color: #555;">If you didn’t request this password reset, you can safely ignore this email.</p>
 
-      <p style="margin-top: 30px;">Stay secure,<br/><strong>– The CodeDoodle Team</strong></p>
+      <p style="margin-top: 30px;">Stay secure,<br/><strong>– The TraceSync Team</strong></p>
     </div>
   `,
     };
@@ -448,6 +449,7 @@ const resetPassword = async (req, res) => {
 
 module.exports = {
   register,
+  checkEmailExists,
   login,
   logout,
   sendVerifyOTP,

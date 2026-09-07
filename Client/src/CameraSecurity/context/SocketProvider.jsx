@@ -10,7 +10,6 @@ export const useSocket = () => {
 };
 
 export const SocketProvider = (props) => {
-  // const socket = useMemo(() => io("https://code-doodle-editor-6.onrender.com"), []);
   const socket = useMemo(() => io(`${BACKEND_URL}`), []);
 
   return (

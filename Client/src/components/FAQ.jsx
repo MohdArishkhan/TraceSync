@@ -5,16 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const questions_answer = [
   {
-    ques: "How does CodeDoodle synchronize code in real-time?",
-    ans: "CodeDoodle uses WebSockets combined with operational transformation algorithms to synchronize AST state across all connected peers with sub-millisecond latency. Every keystroke is broadcasted and reconciled instantaneously.",
+    ques: "How does TraceSync synchronize code in real-time?",
+    ans: "TraceSync uses WebSockets combined with operational transformation algorithms to synchronize AST state across all connected peers with sub-millisecond latency. Every keystroke is broadcasted and reconciled instantaneously.",
   },
   {
     ques: "How does the integrated voice and video calling work?",
     ans: "Voice and video are built directly on top of WebRTC mesh peer connections. Media flows directly between participants with zero third-party meeting servers, ensuring low latency and maximum privacy.",
   },
   {
-    ques: "Can I use CodeDoodle for technical interviews and pair programming?",
-    ans: "Yes! CodeDoodle provides integrated problem descriptions, live test case runners, code execution, multi-cursor indicators, and integrated audio/video designed specifically for interviews and pairing sessions.",
+    ques: "Can I use TraceSync for technical interviews and pair programming?",
+    ans: "Yes! TraceSync provides integrated problem descriptions, live test case runners, code execution, multi-cursor indicators, and integrated audio/video designed specifically for interviews and pairing sessions.",
   },
   {
     ques: "Is my code secure and private?",
@@ -22,11 +22,11 @@ const questions_answer = [
   },
   {
     ques: "Which programming languages are supported?",
-    ans: "CodeDoodle supports 15+ languages including JavaScript, TypeScript, Python, C++, Java, Rust, Go, SQL, HTML/CSS, and more with full syntax highlighting.",
+    ans: "TraceSync supports 15+ languages including JavaScript, TypeScript, Python, C++, Java, Rust, Go, SQL, HTML/CSS, and more with full syntax highlighting.",
   },
   {
     ques: "Do I need to install any software or extensions?",
-    ans: "No installation is required. CodeDoodle runs completely inside any modern web browser on desktop, tablet, and mobile devices.",
+    ans: "No installation is required. TraceSync runs completely inside any modern web browser on desktop, tablet, and mobile devices.",
   },
 ];
 
@@ -80,7 +80,7 @@ function FAQ({ isLightMode }) {
               isLightMode ? "text-gray-600" : "text-gray-400"
             }`}
           >
-            Everything you need to know about CodeDoodle's architecture, security, and features.
+            Everything you need to know about TraceSync's architecture, security, and features.
           </p>
         </div>
 
