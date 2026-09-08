@@ -27,20 +27,6 @@ TraceSync integrates **real-time code sharing**, **AI-powered code reviews**, **
 
 ## Demo Images
 
-- Home Page
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/pic1_rcpyge.png" alt="TraceSync Home page" />
-
-- Real-time Code Editor Panel
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/camera_and_code_fca3gp.png" alt="Real time code editor panel" />
-
-- Code Reviewer
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/CodeReviewer_nrqlxq.png"  alt="Code reviewer" />
-
-- TraceSync ChatBot
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/chatbot_sumch1.png" alt="TraceSync Chatbot" />
-
-- Workspace
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/workspace_g526bc.png"  alt="workspace" />
 
 ---
 
