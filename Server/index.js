@@ -1,8 +1,9 @@
+require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
-const { createClient } = require("@supabase/supabase-js"); 
+const { createClient } = require("@supabase/supabase-js");
 const myRouter = require("./Routings/authRoutes");
 const app = express();
 const connectDB = require("./Config/mongodb");
@@ -19,19 +20,22 @@ const documentRoutes = require("./Routings/documentRoutes");
 const roomRoutes = require("./Routings/roomRoutes");
 const compression = require("compression");
 const firstHitRoute = require("./Routings/FirstHitRoute");
-require("dotenv").config();
+
 
 app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
-  credentials: true                
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 // Initialize Supabase Client for backend operations
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const server = http.createServer(app);
@@ -45,21 +49,21 @@ const io = new Server(server, {
 
 app.use("/api/auth", myRouter);
 app.use("/Code-reviewer", myRouter2);
-app.use("/api/userData",router3);
-app.use("/api/file",router4);
-app.use("/api/chats/",router5);
-app.use("/api/theme",router6);
-app.use("/api/feedback",Router7);
+app.use("/api/userData", router3);
+app.use("/api/file", router4);
+app.use("/api/chats/", router5);
+app.use("/api/theme", router6);
+app.use("/api/feedback", Router7);
 app.use("/api/execute", codeExecutionRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/rooms", roomRoutes);
-app.use("/api/analytics", firstHitRoute); 
+app.use("/api/analytics", firstHitRoute);
 app.use(artificialRoutes);
-connectDB();
+// connectDB();
 
-app.get("/",(req,res)=>{
+app.get("/", (req, res) => {
   res.send("This is my Home Page");
-})
+});
 
 const saveTimeouts = new Map();
 const emailToSocketIdMap = new Map();
@@ -78,13 +82,7 @@ const helper = (roomid) => {
 };
 
 io.on("connection", (socket) => {
-  
-  // ----------------------------------------------------
-  // DEBOUNCED DATABASE SAVE LOGIC
-  // ----------------------------------------------------
   socket.on("trigger-db-save", ({ roomid, codeContent }) => {
-    
-    // 1. If a save is already counting down for this room, cancel it
     if (saveTimeouts.has(roomid)) {
       clearTimeout(saveTimeouts.get(roomid));
     }
@@ -93,43 +91,64 @@ io.on("connection", (socket) => {
     const timer = setTimeout(async () => {
       try {
         console.log(`[AutoSave] Saving room ${roomid} to Supabase...`);
-        
+
         // Execute the actual Supabase update query
         const { error } = await supabase
-          .from('documents')
-          .update({ 
-             code_content: codeContent, 
-             updated_at: new Date().toISOString() 
-           })
-          .eq('id', roomid); // Assumes roomid perfectly matches the document UUID
-          
+          .from("documents")
+          .update({
+            code_content: codeContent,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", roomid);
+
         if (error) throw error;
 
         console.log(`[AutoSave] Room ${roomid} saved successfully!`);
       } catch (error) {
         console.error(`[AutoSave Error]:`, error.message);
       } finally {
-        // Clear the timer from the map once the save is complete
-        saveTimeouts.delete(roomid); 
+        saveTimeouts.delete(roomid);
       }
-    }, 2000); 
+    }, 2000);
 
-    // Store the active timer
     saveTimeouts.set(roomid, timer);
   });
   // ----------------------------------------------------
 
-  socket.on("join", ({ roomid, username }) => {
+  socket.on("join", async ({ roomid, username }) => {
     dataMappings[socket.id] = username;
     socket.join(roomid);
 
     const allClients = helper(roomid);
 
+    // 1. Notify everyone in the room (including the joiner) about the updated member list
     io.to(roomid).emit("joined", {
       clients: allClients,
       socketid: socket.id,
       username: username,
     });
+
+    // 2. Fetch the current room document from Supabase
+    try {
+      const { data: document, error } = await supabase
+        .from("documents")
+        .select("code_content, visual_state, language")
+        .eq("id", roomid)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error(`[Join Error] Fetching room ${roomid}:`, error.message);
+      }
+
+      // 3. Send the existing code and state ONLY to the user who just connected
+      socket.emit("initial-code", {
+        code: document?.code_content || "",
+        visualState: document?.visual_state || {},
+        language: document?.language || "javascript",
+      });
+    } catch (err) {
+      console.error("[Join Fetch Exception]:", err.message);
+    }
   });
 
   socket.on("room:join", (data) => {
@@ -170,10 +189,10 @@ io.on("connection", (socket) => {
   socket.on("messages:sent", ({ to, currMsg }) => {
     socket.broadcast.emit("messages:sent", { from: socket.id, currMsg });
   });
-  
-  socket.on("micMsg",({socketid,micMsg})=>{
-    socket.broadcast.emit("micMsg",{from:socket.id,micMsg});
-  })
+
+  socket.on("micMsg", ({ socketid, micMsg }) => {
+    socket.broadcast.emit("micMsg", { from: socket.id, micMsg });
+  });
 
   socket.on("user-leave", () => {
     const rooms = [...socket.rooms];

@@ -39,7 +39,7 @@ export default function Header({ isLightMode, setisLightMode }) {
     }
   }
 
-  const menuItems = ["Home", "About", "Contact", "Developer", "Workspace"];
+  const menuItems = ["Home", "About", "Feedback", "Developer", "Workspace"];
 
   return (
     <header

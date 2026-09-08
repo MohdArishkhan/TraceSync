@@ -76,7 +76,7 @@ function Hero({ isLightMode }) {
               isLightMode ? "text-gray-600" : "text-gray-400"
             }`}
           >
-            Ultra-low latency pair programming with integrated WebRTC voice & video, interactive visualizer, and instant AI reviews in a single browser window.
+            Ultra-low latency Collaborative programming, Integrated WebRTC voice & video with Streaming, Interactive Code visualization, And instant AI reviews in a single browser window.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -96,7 +96,7 @@ function Hero({ isLightMode }) {
 
             <button
               onClick={() => {
-                const demoSection = document.getElementById("demo-visual");
+                const demoSection = document.getElementById("video-section");
                 demoSection?.scrollIntoView({ behavior: "smooth" });
               }}
               className={`w-full sm:w-auto px-7 py-3.5 text-base font-semibold font-mono rounded-tech-lg border backdrop-blur-sm transition-all duration-300 flex items-center justify-center gap-2 ${

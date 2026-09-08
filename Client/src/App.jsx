@@ -5,7 +5,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Login from "./Auth/Login.jsx";
-import Contact from "./components/Contact.jsx";
+import Feedback from "./components/Contact.jsx";
 import Register from "./Auth/Register.jsx";
 import RegisteredEmail from "./Auth/RegisteredEmail.jsx";
 import EnterOTPforPassword from "./Auth/EnterOTPforPassword.jsx";
@@ -92,8 +92,8 @@ function App() {
         element={<Login key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
       />
       <Route
-        path="/Contact"
-        element={<Contact key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+        path="/Feedback"
+        element={<Feedback key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
       />
       <Route
         path="/LoginPage"

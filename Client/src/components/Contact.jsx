@@ -95,7 +95,7 @@ const Contact = ({ isLightMode }) => {
                   <span>Get In Touch</span>
                 </div>
                 <h1 className="font-mono text-2xl sm:text-3xl font-bold tracking-tight">
-                  Contact the Team
+                  Give Your Feedback
                 </h1>
                 <p
                   className={`text-xs sm:text-sm font-sans leading-relaxed ${
