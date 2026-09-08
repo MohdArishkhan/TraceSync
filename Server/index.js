@@ -18,6 +18,7 @@ const artificialRoutes = require("./Routings/ArtificialRoutes");
 const documentRoutes = require("./Routings/documentRoutes");
 const roomRoutes = require("./Routings/roomRoutes");
 const compression = require("compression");
+const firstHitRoute = require("./Routings/FirstHitRoute");
 require("dotenv").config();
 
 app.use(compression());
@@ -52,6 +53,7 @@ app.use("/api/feedback",Router7);
 app.use("/api/execute", codeExecutionRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/analytics", firstHitRoute); 
 app.use(artificialRoutes);
 connectDB();
 

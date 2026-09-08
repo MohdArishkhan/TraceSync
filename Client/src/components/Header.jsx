@@ -4,23 +4,38 @@ import { useAppContext } from "../Context/AppContext";
 import Profile from "./Profile";
 import Buttons from "./Buttons";
 import { Moon, Sun, Menu, X, Network } from "lucide-react";
-import axios from "axios";
+import { supabase } from "../lib/supabase";
 
 export default function Header({ isLightMode, setisLightMode }) {
-  const { userData, BACKEND_URL, getUserData } = useAppContext();
+  const { userData, getUserData } = useAppContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function getPath(currFilePath) {
     return currFilePath === "home" ? "/" : `/${currFilePath}`;
   }
 
-  async function toggleThemeInDB() {
+  // Instant UI toggle + background persistence
+  async function handleToggleTheme() {
+    const nextMode = !isLightMode;
+
+    if (setisLightMode) {
+      setisLightMode(nextMode);
+    }
+
     try {
-      const res = await axios.post(`${BACKEND_URL}/api/theme/changeTheme`, {}, { withCredentials: true });
-      getUserData();
-      setisLightMode(userData.isLightMode);
-    } catch (e) {
-      console.error(e);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ theme: nextMode ? "light" : "dark" })
+          .eq("id", user.id);
+
+        if (getUserData) {
+          getUserData();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to persist theme change to Supabase:", err);
     }
   }
 
@@ -37,7 +52,7 @@ export default function Header({ isLightMode, setisLightMode }) {
       <nav className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
 
-          {/* Logo - Monospace + Icon */}
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <Network
               className={`w-7 h-7 transition-colors ${
@@ -78,20 +93,17 @@ export default function Header({ isLightMode, setisLightMode }) {
                 }
               >
                 {item}
-                {/* Underline indicator */}
                 <span
-                  className={`absolute -bottom-1 left-0 h-[2px] w-0 transition-all duration-200 group-hover:w-full ${
-                    isLightMode ? "bg-accent-violet" : "bg-accent-violet"
-                  }`}
-                ></span>
+                  className="absolute -bottom-1 left-0 h-[2px] w-0 transition-all duration-200 group-hover:w-full bg-accent-violet"
+                />
               </NavLink>
             ))}
           </div>
 
-          {/* Theme Toggle + Auth Buttons (Desktop) */}
+          {/* Desktop Controls */}
           <div className="hidden lg:flex items-center gap-4">
-            {/* <button
-              onClick={toggleThemeInDB}
+            <button
+              onClick={handleToggleTheme}
               className={`p-2 rounded-tech border transition-all duration-200 ${
                 isLightMode
                   ? "border-gray-200 hover:border-accent-violet hover:bg-accent-violet/10"
@@ -104,7 +116,7 @@ export default function Header({ isLightMode, setisLightMode }) {
               ) : (
                 <Sun className="w-4 h-4 text-gray-300" />
               )}
-            </button> */}
+            </button>
 
             {userData ? (
               <Profile userName={userData.name} isLightMode={isLightMode} setisLightMode={setisLightMode} />
@@ -113,14 +125,12 @@ export default function Header({ isLightMode, setisLightMode }) {
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile Toggle Buttons */}
           <div className="lg:hidden flex items-center gap-3">
             <button
-              onClick={toggleThemeInDB}
+              onClick={handleToggleTheme}
               className={`p-2 rounded-tech border ${
-                isLightMode
-                  ? "border-gray-200"
-                  : "border-dark-border"
+                isLightMode ? "border-gray-200" : "border-dark-border"
               }`}
               aria-label="Toggle theme"
             >
@@ -141,7 +151,7 @@ export default function Header({ isLightMode, setisLightMode }) {
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Mobile Dropdown */}
         {mobileMenuOpen && (
           <div
             className={`lg:hidden mt-6 pt-6 border-t space-y-4 ${

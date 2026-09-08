@@ -27,18 +27,38 @@ import Instruction from "./components/Instruction.jsx";
 import Ask from "./components/Ask.jsx";
 import RecycleBinFolder from "./components/RecycleBinFolder.jsx";
 import VisualizerPage from "./Visualizer/VisualizerPage.jsx";
+
 function App() {
-  const { userData, isLoggedIn, authLoading } = useAppContext();
-  const [isLightMode, setisLightMode] = useState(true);
-  const location = useLocation(); // Required for key
+  const { userData, isLoggedIn, authLoading, BACKEND_URL } = useAppContext();
+  const [isLightMode, setisLightMode] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
-    setisLightMode(userData?.isLightMode);
+    if (userData?.isLightMode !== undefined) {
+      setisLightMode(userData.isLightMode);
+    }
   }, [userData]);
+
+  useEffect(() => {
+    const trackVisit = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+        await fetch(`${baseUrl}/api/analytics/track-visit`);
+      } catch (err) {
+        console.error("Tracking ping failed:", err);
+      }
+    };
+
+    trackVisit();
+  }, [BACKEND_URL]);
 
   const ProtectedRoute = ({ children }) => {
     if (authLoading) return null;
-    return isLoggedIn && userData ? children : <Navigate to="/LoginPage" replace state={{ from: location.pathname }} />;
+    return isLoggedIn && userData ? (
+      children
+    ) : (
+      <Navigate to="/LoginPage" replace state={{ from: location.pathname }} />
+    );
   };
 
   const protectedElement = (element) => (
@@ -46,35 +66,108 @@ function App() {
   );
 
   return (
-    <>
-      <Routes>
-        <Route path="/Header" element={<Header key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/Ask" element={protectedElement(<Ask key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/" element={<Home key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/about" element={<About key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/ChatDesktop" element={protectedElement(<ChatDesktop key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/login" element={<Login key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/Contact" element={<Contact key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/LoginPage" element={<Login key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/RegisteredEmail" element={<RegisteredEmail key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/registerPage" element={<Register key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/EnterOTPforPassword" element={<EnterOTPforPassword key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/ResetPassword" element={<ResetPassword key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/RoomPage" element={protectedElement(<RoomPage key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/MyScreen/:roomId" element={protectedElement(<MyScreen key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/EditorPage/:roomid" element={protectedElement(<EditorPage key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/StrapLayout" element={protectedElement(<StrapLayout key={location.key} />)} />
-        <Route path="/GridLayout" element={protectedElement(<GridLayout key={location.key} />)} />
-        <Route path="/workspace" element={protectedElement(<FolderPage key={location.key} isLightMode={isLightMode} />)} />
-        <Route path="/CodeReviewer" element={protectedElement(<FullScreen key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/Instruction" element={protectedElement(<Instruction key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/verifyEmail" element={<VerifyEmail key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />} />
-        <Route path="/LobbyPage" element={protectedElement(<LobbyScreen key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/Developer" element={protectedElement(<Developer key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-        <Route path="/RecycleBinFolderPage" element={protectedElement(<RecycleBinFolder />)} />
-        <Route path="/Visualizer" element={protectedElement(<VisualizerPage key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} />
-      </Routes>
-    </>
+    <Routes>
+      <Route
+        path="/Header"
+        element={<Header key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/Ask"
+        element={protectedElement(<Ask key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+      <Route
+        path="/"
+        element={<Home key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/about"
+        element={<About key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/ChatDesktop"
+        element={protectedElement(<ChatDesktop key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+      <Route
+        path="/login"
+        element={<Login key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/Contact"
+        element={<Contact key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/LoginPage"
+        element={<Login key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/RegisteredEmail"
+        element={<RegisteredEmail key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/registerPage"
+        element={<Register key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/EnterOTPforPassword"
+        element={<EnterOTPforPassword key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/ResetPassword"
+        element={<ResetPassword key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/RoomPage"
+        element={protectedElement(<RoomPage key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+      <Route
+        path="/MyScreen/:roomId"
+        element={protectedElement(<MyScreen key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+      <Route
+        path="/EditorPage/:roomid"
+        element={protectedElement(<EditorPage key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+      <Route
+        path="/StrapLayout"
+        element={protectedElement(<StrapLayout key={location.key} />)}
+      />
+      <Route
+        path="/GridLayout"
+        element={protectedElement(<GridLayout key={location.key} />)}
+      />
+      <Route
+        path="/workspace"
+        element={protectedElement(<FolderPage key={location.key} isLightMode={isLightMode} />)}
+      />
+      <Route
+        path="/CodeReviewer"
+        element={protectedElement(<FullScreen key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+      <Route
+        path="/Instruction"
+        element={protectedElement(<Instruction key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+      <Route
+        path="/verifyEmail"
+        element={<VerifyEmail key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />}
+      />
+      <Route
+        path="/LobbyPage"
+        element={protectedElement(<LobbyScreen key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} 
+      />
+      <Route
+        path="/Developer"
+        element={protectedElement(<Developer key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)} 
+      />
+      <Route
+        path="/RecycleBinFolderPage"
+        element={protectedElement(<RecycleBinFolder />)}
+      />
+      <Route
+        path="/Visualizer"
+        element={protectedElement(<VisualizerPage key={location.key} isLightMode={isLightMode} setisLightMode={setisLightMode} />)}
+      />
+    </Routes>
   );
 }
 
