@@ -3,13 +3,16 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
-const { createClient } = require("@supabase/supabase-js");
+const cookieParser = require("cookie-parser");
+const compression = require("compression");
+
+// Supabase shared client
+const { supabaseAdmin: supabase } = require("./Config/supabase");
+
+// Route imports
 const myRouter = require("./Routings/authRoutes");
-const app = express();
-const connectDB = require("./Config/mongodb");
 const myRouter2 = require("./Routings/CodeReviewerRoute");
 const router3 = require("./Routings/userDataRoutes");
-const cookieParser = require("cookie-parser");
 const router4 = require("./Routings/fileRoutes");
 const router5 = require("./Routings/ChatsRoute");
 const router6 = require("./Routings/ThemeRoutes");
@@ -18,9 +21,9 @@ const codeExecutionRoutes = require("./Routings/codeExecutionRoutes");
 const artificialRoutes = require("./Routings/ArtificialRoutes");
 const documentRoutes = require("./Routings/documentRoutes");
 const roomRoutes = require("./Routings/roomRoutes");
-const compression = require("compression");
 const firstHitRoute = require("./Routings/FirstHitRoute");
 
+const app = express();
 
 app.use(compression());
 app.use(express.json());
@@ -29,14 +32,8 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
-  }),
+  })
 );
-
-// Initialize Supabase Client for backend operations
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const server = http.createServer(app);
 
@@ -47,28 +44,35 @@ const io = new Server(server, {
   },
 });
 
+// Normalized API Route Mounts
 app.use("/api/auth", myRouter);
 app.use("/Code-reviewer", myRouter2);
 app.use("/api/userData", router3);
 app.use("/api/file", router4);
-app.use("/api/chats/", router5);
+app.use("/api/chats", router5); // Removed trailing slash
 app.use("/api/theme", router6);
 app.use("/api/feedback", Router7);
 app.use("/api/execute", codeExecutionRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/analytics", firstHitRoute);
-app.use(artificialRoutes);
-// connectDB();
+
+// Fix for Artificial/Bot Routes: Supports both prefixed and root calls
+app.use("/api/artificial", artificialRoutes);
+app.use(artificialRoutes); 
 
 app.get("/", (req, res) => {
   res.send("This is my Home Page");
 });
 
+app.get("/homePage", (req, res) => {
+  res.send("This is my Home Page");
+});
+
+// Socket.IO State
 const saveTimeouts = new Map();
 const emailToSocketIdMap = new Map();
 const socketidToEmailMap = new Map();
-
 const dataMappings = {};
 
 const helper = (roomid) => {
@@ -87,12 +91,10 @@ io.on("connection", (socket) => {
       clearTimeout(saveTimeouts.get(roomid));
     }
 
-    // 2. Start a fresh 2-second countdown
     const timer = setTimeout(async () => {
       try {
         console.log(`[AutoSave] Saving room ${roomid} to Supabase...`);
 
-        // Execute the actual Supabase update query
         const { error } = await supabase
           .from("documents")
           .update({
@@ -113,7 +115,6 @@ io.on("connection", (socket) => {
 
     saveTimeouts.set(roomid, timer);
   });
-  // ----------------------------------------------------
 
   socket.on("join", async ({ roomid, username }) => {
     dataMappings[socket.id] = username;
@@ -121,14 +122,12 @@ io.on("connection", (socket) => {
 
     const allClients = helper(roomid);
 
-    // 1. Notify everyone in the room (including the joiner) about the updated member list
     io.to(roomid).emit("joined", {
       clients: allClients,
       socketid: socket.id,
       username: username,
     });
 
-    // 2. Fetch the current room document from Supabase
     try {
       const { data: document, error } = await supabase
         .from("documents")
@@ -140,7 +139,6 @@ io.on("connection", (socket) => {
         console.error(`[Join Error] Fetching room ${roomid}:`, error.message);
       }
 
-      // 3. Send the existing code and state ONLY to the user who just connected
       socket.emit("initial-code", {
         code: document?.code_content || "",
         visualState: document?.visual_state || {},
@@ -212,9 +210,7 @@ io.on("connection", (socket) => {
 
   socket.on("yjs-update", ({ roomid, username, update }) => {
     if (roomid && update) {
-      // Broadcast the binary array to everyone else in the room
       socket.to(roomid).emit("yjs-update", { update, username });
-      // Tell UI someone is typing
       socket.to(roomid).emit("show-who-changed", { whoChanged: username });
     }
   });
@@ -226,10 +222,6 @@ io.on("connection", (socket) => {
   socket.on("sync-code", ({ socketid, code }) => {
     io.to(socketid).emit("code-changed", { code });
   });
-});
-
-app.get("/homePage", (req, res) => {
-  res.send("This is my Home Page");
 });
 
 server.listen(process.env.PORT || 3000, () => {
