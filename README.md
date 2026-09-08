@@ -21,7 +21,7 @@ TraceSync integrates **real-time code sharing**, **AI-powered code reviews**, **
 
 ## Live Demo
 
-🚀 You can check my hosted project here: [[TraceSync - Live Demo]()]
+🚀 You can check my hosted project here: [[TraceSync - Live Demo](https://trace-sync.vercel.app)]
 
 ---
 
