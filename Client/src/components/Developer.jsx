@@ -27,7 +27,7 @@ const developers = [
     name: "Salman Khan",
     role: "Frontend Architect & UI/UX",
     image: coder,
-    badge: "FRONTEND & DESIGN",
+    badge: "FRONTEND & BACKEND",
     // github: "https://github.com/salmankhan",
     // linkedin: "https://www.linkedin.com/in/salman-khan",
     // instagram: "https://www.instagram.com/salmankhan/",
