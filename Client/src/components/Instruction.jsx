@@ -48,9 +48,9 @@ const guideSteps = [
   {
     title: "6. Ready to Code!",
     icon: Sparkles,
-    content: "You're all set! Dive in and experience low-latency multiplayer coding and real-time communication with CodeDoodle.",
+    content: "You're all set! Dive in and experience low-latency multiplayer coding and real-time communication with TraceSync.",
     tag: "READY",
-    action: { label: "Enter Room Now", link: "/RoomPage" },
+    action: { label: "Enter Room Now", link: "/LobbyPage" },
   },
 ];
 

@@ -28,7 +28,7 @@ export const ensurePersonalProject = async () => {
   const workspace = await getOrCreate(
     'workspaces',
     { owner_id: user.id },
-    { owner_id: user.id, name: 'My Workspace', description: 'Personal Doodle workspace' }
+    { owner_id: user.id, name: 'My Workspace', description: 'Personal TraceSync workspace' }
   );
 
   return getOrCreate(

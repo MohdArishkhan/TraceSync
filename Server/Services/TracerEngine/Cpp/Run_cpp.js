@@ -133,7 +133,7 @@ const executeCppTrace = async (sourceCode, customInput) => {
             
             // Memory error check
             if (executionError.stderr && executionError.stderr.includes("MemoryError")) {
-                throw new Error("Doodle Error: Memory limit exceeded. Try reducing array size.");
+                throw new Error("TraceSync Error: Memory limit exceeded. Try reducing array size.");
             }
             
             throw new Error(`Execution Failed & No Trace Found.\nSTDERR: ${executionError.stderr || "Unknown Timeout"}\nSTDOUT: ${executionError.stdout || ""}`);

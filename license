@@ -29,7 +29,7 @@ SOFTWARE.
 - Specialized in backend architecture  
 - Developed real-time code editor  
 - Built login/authentication system (OTP included)  
-- Created CodeDoodle Meeting, ChatBot, and Code Reviewer  
+- Created TraceSync Meeting, ChatBot, and Code Reviewer  
 - Handled WebRTC integration and socket connections  
 - Built the collaborative WorkSpace module
 

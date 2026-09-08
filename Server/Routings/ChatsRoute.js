@@ -1,9 +1,11 @@
 const express = require('express');
 const router5 = express.Router();
-const userAuth = require('../MiddleWares/userAuth');
+const { requireAuth } = require('../MiddleWares/requireAuth'); 
+
 const { deleteDesktopChats, addDesktopChats } = require('../Controllers/ChatsController');
 
-router5.post('/addDesktopChats',userAuth, addDesktopChats);
-router5.post('/deleteDesktopChats',userAuth, deleteDesktopChats);
+// 2. Use requireAuth in the routes (Replaced userAuth!)
+router5.post('/addDesktopChats', requireAuth, addDesktopChats);
+router5.post('/deleteDesktopChats', requireAuth, deleteDesktopChats);
 
 module.exports = router5;

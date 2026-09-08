@@ -50,7 +50,7 @@ const Ask = ({ isLightMode }) => {
         </div>
 
         <h2 className="font-mono text-2xl font-bold tracking-tight mb-2">
-          New to CodeDoodle?
+          New to TraceSync?
         </h2>
 
         <p

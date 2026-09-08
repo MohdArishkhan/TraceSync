@@ -1,7 +1,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import React, { useRef, useEffect } from "react";
-import CodeDoodleVideo from "../assets/CodeDoodle.mp4";
+import TraceSync from "../assets/vid_tracesync.mp4";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import { PlayCircle, ShieldCheck } from "lucide-react";
 gsap.registerPlugin(ScrollTrigger);
@@ -31,6 +31,7 @@ function Video({ isLightMode }) {
 
   return (
     <section
+      id="video-section" 
       className={`py-20 sm:py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden ${
         isLightMode ? "bg-white" : "bg-dark-bg"
       }`}
@@ -47,7 +48,7 @@ function Video({ isLightMode }) {
             isLightMode ? "text-gray-900" : "text-white"
           }`}
         >
-          See CodeDoodle in Action
+          See TraceSync in Action
         </h2>
 
         <p
@@ -55,7 +56,7 @@ function Video({ isLightMode }) {
             isLightMode ? "text-gray-600" : "text-gray-400"
           }`}
         >
-          Experience live code synchronization, WebRTC calls, and intelligent code review in action.
+          Experience live code synchronization, WebRTC calls, Code Visualization and intelligent code review in action.
         </p>
 
         {/* Video Card Container */}
@@ -81,7 +82,7 @@ function Video({ isLightMode }) {
 
             <span className="font-mono text-xs text-gray-500 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>codedoodle-live-demo.mp4</span>
+              <span>TraceSync-live-demo.mp4</span>
             </span>
 
             <div className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent-violet/10 text-accent-violet">
@@ -91,7 +92,7 @@ function Video({ isLightMode }) {
 
           {/* HTML5 Video */}
           <video
-            src={CodeDoodleVideo}
+            src={TraceSync}
             ref={videoRef}
             muted
             loop

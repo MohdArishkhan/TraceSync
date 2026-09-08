@@ -212,7 +212,7 @@ function Intro({ isLightMode }) {
                     </div>
                     <div>
                       <div className={`font-mono text-xs font-semibold ${isLightMode ? "text-gray-900" : "text-white"}`}>
-                        CodeDoodle Bot
+                        TraceSync Bot
                       </div>
                       <div className="flex items-center gap-1 text-[11px] text-purple-400">
                         <MessageSquare className="w-3 h-3" />

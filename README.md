@@ -1,7 +1,7 @@
-# 🚀 CodeDoodle: Real-Time Code Collaboration & Communication Platform
+# 🚀 TraceSync: Real-Time Code Collaboration & Communication Platform
 
 A full-stack collaborative platform that empowers developers, students, and teams to code, review, and communicate seamlessly in real time.  
-CodeDoodle integrates **real-time code sharing**, **AI-powered code reviews**, **chat assistance**, and **video meetings**, making it an all-in-one solution for learning, mentoring, and teamwork.
+TraceSync integrates **real-time code sharing**, **AI-powered code reviews**, **chat assistance**, and **video meetings**, making it an all-in-one solution for learning, mentoring, and teamwork.
 
 ---
 
@@ -21,14 +21,14 @@ CodeDoodle integrates **real-time code sharing**, **AI-powered code reviews**, *
 
 ## Live Demo
 
-🚀 You can check my hosted project here: [[CodeDoodle - Live Demo](https://code-doodle-editor.vercel.app/)]
+🚀 You can check my hosted project here: [[TraceSync - Live Demo](https://code-doodle-editor.vercel.app/)]
 
 ---
 
 ## Demo Images
 
 - Home Page
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/pic1_rcpyge.png" alt="Codedoodle Home page" />
+<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/pic1_rcpyge.png" alt="TraceSync Home page" />
 
 - Real-time Code Editor Panel
 <img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/camera_and_code_fca3gp.png" alt="Real time code editor panel" />
@@ -36,8 +36,8 @@ CodeDoodle integrates **real-time code sharing**, **AI-powered code reviews**, *
 - Code Reviewer
 <img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/CodeReviewer_nrqlxq.png"  alt="Code reviewer" />
 
-- Codedoodle ChatBot
-<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/chatbot_sumch1.png" alt="Codedoodle Chatbot" />
+- TraceSync ChatBot
+<img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/chatbot_sumch1.png" alt="TraceSync Chatbot" />
 
 - Workspace
 <img src="https://res.cloudinary.com/dlkuodrjm/image/upload/v1767686923/workspace_g526bc.png"  alt="workspace" />
@@ -62,11 +62,11 @@ CodeDoodle integrates **real-time code sharing**, **AI-powered code reviews**, *
 
 1. Clone the repository  
 ```bash
-git clone https://github.com/aditya-kumar-patraan1/Code-Doodle-Editor.git
+git clone 
 ```
 2. Navigate to the project directory
 ```bash
-cd Code-Doodle-Editor
+cd TraceSync
 ```
 3. Create a .env file in the root directory and add your Gemini API key:
 ```bash

@@ -33,9 +33,9 @@ const featureList = [
   },
   {
     id: "practice",
-    title: "Algorithm Visualizer",
+    title: "Code Visualizer",
     badge: "TREE RUNNER",
-    desc: "Interactive visual execution trees and problem sets to master DSA together.",
+    desc: "Interactive visual executions and problem sets to master DSA Concepts.",
     link: "/Visualizer",
     icon: TerminalSquare,
     details: ["Visual AST tree", "Step-by-step debug", "Interactive execution"],

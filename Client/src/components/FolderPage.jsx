@@ -174,7 +174,7 @@ function FolderPage({ isLightMode }) {
                   isLightMode ? "text-gray-500" : "text-gray-400"
                 }`}
               >
-                Create and save files in the CodeDoodle Editor to access them here.
+                Create and save files in the TraceSync Editor to access them here.
               </p>
             </div>
           ) : isGrid ? (

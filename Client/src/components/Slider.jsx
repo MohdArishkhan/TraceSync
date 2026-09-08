@@ -12,7 +12,7 @@ const slides = [
   {
     id: 1,
     tag: "AI ASSISTANT",
-    heading: "CodeDoodle Intelligent ChatBot",
+    heading: "TraceSync Intelligent ChatBot",
     text: "Get real-time code completions, algorithmic insights, debugging tips, and step-by-step logic explanations powered by state-of-the-art AI.",
     image: ChatBot,
     link: "/ChatDesktop",
@@ -21,7 +21,7 @@ const slides = [
   {
     id: 2,
     tag: "WEBRTC CONFERENCING",
-    heading: "CodeDoodle Live Meetings",
+    heading: "TraceSync Live Meetings",
     text: "Seamless peer-to-peer audio/video calling and screen-sharing directly integrated with the collaborative editor. Zero delay, zero setup.",
     image: meeting,
     link: "/LobbyPage",
